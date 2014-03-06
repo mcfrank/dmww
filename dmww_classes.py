@@ -61,7 +61,8 @@ class Lexicon:
             for w in s[0]:
                 for o in s[1]:
                     self.coocs[w,o] += 1
-
+            
+            
     def show_coocs(self):
         print self.coocs
         
