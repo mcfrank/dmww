@@ -10,9 +10,16 @@ w = World()
 w.show()
             
 c = Corpus(w)
-c.sample_sents()
+c.sampleSents()
 c.show()
 
+print "*** coocurrence test ***"
 l = CoocLexicon()
-l.get_lex(w,c)
+l.learnLex(w,c)
+l.show()
+
+print "*** gibbs test ***"
+l = GibbsLexicon()
+p = Params()
+l.learnLex(w,c,p)
 l.show()
