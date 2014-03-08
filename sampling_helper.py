@@ -1,4 +1,5 @@
 from numpy import *
+from random import *
 from scipy.special import gammaln
 
 # function [i j s] = chooseClass(scores)

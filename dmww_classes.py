@@ -51,8 +51,10 @@ class Corpus:
 
 ##### lexicon class is the main classs #####
 class Lexicon:
-    def __init__(self):
+    def __init__(self,
+                 verbose = 0):
         self.lex = None
+        self.verbose = verbose
 
     # generic show method, where visualization eventually goes
     def show(self):
@@ -98,17 +100,32 @@ class GibbsLexicon(Lexicon):
 
         win_score = nans(params.n_samps)
         self.initLex(corpus, world, params)
-        
+
         for i in range(params.n_samps):
             for s in range(corpus.n_sents):
-                self.prepLex(corpus, params, s)
-
-                for j in range(len(s[0]+1)): # +1 for null
-                    for k in range(len(s[1]+1)): 
-                        (scores[j,k], lexs[j][k]) = scoreLex(corpus, i, j, k)
-
+                if self.verbose:
+                    print "sent " + str(s) + " - " + str(corpus.sents[s]) + " :"
+                        
+                n_os = len(corpus.sents[s][1])+1 # +1 for null
+                n_ws = len(corpus.sents[s][0])+1
+                
+                scores = zeros((n_os, n_ws))
+                
+                for j in range(n_os): 
+                    for k in range(n_ws):
+                        if self.verbose == 2: 
+                            print "    i = " + str(i) + ", j = " + str(j)
+                            print "    ref = " + str(self.intent_obj[s]) + "," + str(self.ref_word[s])
+                            print self.ref
+                        self.prepLex(corpus, params, s)
+                        print self.ref
+                        scores[j,k] = self.scoreLex(corpus, params, i, j, k)
+                        print self.ref
+                        
+                # print scores
                 (j, k, win_score[s]) = chooseClass(scores)
-                lex = lexs[j][k]
+                # print (j, k, win_score[s])
+                self.scoreLex(corpus, params, i, j, k)
         #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
 
 
@@ -121,7 +138,7 @@ class GibbsLexicon(Lexicon):
                  corpus,
                  world,
                  params):
-
+        
         # initialize the relevant variables
         self.ref = zeros((world.n_objs, world.n_words))
         self.non_ref = zeros((world.n_words))
@@ -133,7 +150,7 @@ class GibbsLexicon(Lexicon):
         for i in range(corpus.n_sents):
             self.intent_obj[i] = sample(range(len(corpus.sents[i][0])+1),1)[0]
             self.ref_word[i] = sample(range(len(corpus.sents[i][1])+1),1)[0]
-
+            
         # initialize cached probabilities
         self.intent_obj_probs = [None] * corpus.n_sents # list
         self.ref_word_probs = [None] * corpus.n_sents # list
@@ -160,18 +177,13 @@ class GibbsLexicon(Lexicon):
             self.ref_word_probs[i] = [unif_w]*o + [params.no_ref_word]
 
             # update lexicon dirichlets based on random init
-            # print self.oi[i] == self.intent_obj[i]
-            # print corpus.sents[i][0]
-            # print corpus.sents[i][0][array(self.oi[i] == self.intent_obj[i])]
-            # print self.ref
-            
             self.ref[corpus.sents[i][0][self.oi[i] == self.intent_obj[i]],
                     corpus.sents[i][1][self.wi[i] == self.ref_word[i]]] += 1
             self.non_ref[corpus.sents[i][1][self.wi[i] != self.ref_word[i]]] += 1
 
             self.intent_obj_prob[i] = self.intent_obj_probs[i][self.intent_obj[i]]
             self.ref_word_prob[i] = self.ref_word_probs[i][self.ref_word[i]]
-
+        
         # cache DM scores for lexicon
         for i in range(world.n_objs):
             self.ref_score[i] = scoreDM(self.ref[i,:], params.alpha_r)
@@ -179,6 +191,18 @@ class GibbsLexicon(Lexicon):
         # cache non-ref DM score also
         self.nr_score = scoreDM(self.non_ref, params.alpha_nr)
 
+        # debugging stuff
+        if self.verbose:
+            print "-- init lex"
+            print "    intent obj: " + str(self.intent_obj)
+            print "    intent obj prob: " + str(self.intent_obj_prob)
+            print "    ref word: " + str(self.ref_word)
+            print "    ref word prob: " + str(self.ref_word_prob)
+            print "lex: " + str(self.ref)
+            print "nr lex: " + str(self.non_ref)
+            print "    ref score: " + str(self.ref_score)
+            print "    nref score: " + str(self.nr_score)
+        
     #########
     ## prepLex subtracts out the current counts for this particular referential word and referred object, so that this can be done once and then counts can be added for each pairing quickly and independently via the gibbs loop. (It's just factoring out a step that would have to be done by each iteration of the block gibbs). 
     def prepLex(self, corpus, params, i):
@@ -186,24 +210,25 @@ class GibbsLexicon(Lexicon):
         # cache old object and word
         old_o = corpus.sents[i][0][self.oi[i] == self.intent_obj[i]]
         old_w = corpus.sents[i][1][self.wi[i] == self.ref_word[i]]
+        print "        old = " + str(old_o) + " " + str(old_w) + " "
 
         # now subtract their counts from the referential lexicon,
         # but only if there was a referred object
-        if old_o: 
-            print self.ref
-            print old_o
-            print self.ref_score[old_o]
-            print self.ref[old_o,:]
+        if len(old_o): 
+            # print self.ref
+            # print old_o
+            # print self.ref_score[old_o]
+            # print self.ref[old_o,:][0]
             
             self.ref[old_o, old_w] -= 1            
             self.ref_score[old_o] = updateDMminus(self.ref_score[old_o],
-                                                  self.ref[old_o,:],
+                                                  self.ref[old_o,:][0],
                                                   params.alpha_r,
                                                   old_o)
             
         # and add back to the non-referential lexicon,
         # again only if there's a referring word
-        if old_w:
+        if len(old_w):
             self.non_ref[old_w] += 1
             self.nr_score = updateDMplus(self.nr_score,
                                          self.non_ref,
@@ -214,6 +239,7 @@ class GibbsLexicon(Lexicon):
     ## scoreLex
     def scoreLex(self,
                     corpus,
+                    params,
                     i, j, k):
 
         # reassign this j/k pair for this sentence
@@ -235,10 +261,10 @@ class GibbsLexicon(Lexicon):
         
         # and non-ref lexicon
         self.non_ref[new_w] -= 1
-        if new_w:
+        if len(new_w):
             self.nr_score = updateDMminus(self.nr_score, self.non_ref,
                                           params.alpha_nr, new_w)
 
-        ls = sum(self.intent_obj_prob) + sum(lex.ref_word_prob) + self.nr_score + sum(self.ref_score)
+        score = sum(self.intent_obj_prob) + sum(self.ref_word_prob) + self.nr_score + sum(self.ref_score)
 
-
+        return score

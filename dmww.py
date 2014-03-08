@@ -5,7 +5,9 @@ from dmww_classes import *
 ################################################################
 # The model
 ################################################################
-     
+
+seed(1)
+
 w = World()
 w.show()
             
@@ -19,7 +21,7 @@ l.learnLex(w,c)
 l.show()
 
 print "*** gibbs test ***"
-l = GibbsLexicon()
+l = GibbsLexicon(1)
 p = Params()
 l.learnLex(w,c,p)
 l.show()
