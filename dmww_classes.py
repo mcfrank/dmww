@@ -87,7 +87,7 @@ class Params:
         self.empty_intent = float(empty_intent)
         self.no_ref_word = float(no_ref_word)
                
-##### CoocLexicon is a class of lexica learned by gibbs sampling #####
+##### GibbsLexicon is a class of lexica learned by gibbs sampling #####
 class GibbsLexicon(Lexicon):
 
     #########
