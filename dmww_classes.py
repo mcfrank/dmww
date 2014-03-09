@@ -151,10 +151,14 @@ class GibbsLexicon(Lexicon):
         if new_o and new_w:
             self.ref_score[new_o] = updateDMplus(self.ref_score[new_o], self.ref[new_o,:],
                                                  params.alpha_r, new_w)
-        
+
+        if self.verbose:
+            print "-- score lex"
+            print "    new o: " + str(new_o) + " , new w: " + str(new_w)
+            
         # and non-ref lexicon
         self.non_ref[new_w] -= 1
-        if len(new_w):
+        if new_w.size > 0:
             self.nr_score = updateDMminus(self.nr_score, self.non_ref,
                                           params.alpha_nr, new_w)
 
@@ -173,7 +177,7 @@ class GibbsLexicon(Lexicon):
 
         # now subtract their counts from the referential lexicon,
         # but only if there was a referred object
-        if len(old_o): 
+        if old_o.size > 0: 
             # print self.ref
             # print old_o
             # print self.ref_score[old_o]
@@ -187,7 +191,7 @@ class GibbsLexicon(Lexicon):
             
         # and add back to the non-referential lexicon,
         # again only if there's a referring word
-        if len(old_w):
+        if old_w.size > 0:
             self.non_ref[old_w] += 1
             self.nr_score = updateDMplus(self.nr_score,
                                          self.non_ref,
