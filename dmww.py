@@ -21,7 +21,7 @@ l.learnLex(w,c)
 l.show()
 
 print "*** gibbs test ***"
-l = GibbsLexicon(1)
-p = Params()
+l = GibbsLexicon()
+p = Params(n_samps=100)
 l.learnLex(w,c,p)
 l.show()

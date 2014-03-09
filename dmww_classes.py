@@ -11,10 +11,10 @@ from sampling_helper import *
 
 class World:
     def __init__(self,
-                 n_words=4,
-                 n_objs=4):
-        self.n_words = 4
-        self.n_objs = 4
+                 n_words = 4,
+                 n_objs = 4):
+        self.n_words = n_words
+        self.n_objs = n_objs
 
     def show(self):
         print "n_words = " + str(self.n_words)
@@ -82,10 +82,10 @@ class Params:
                 empty_intent = .000001,
                 no_ref_word = .000001):
         self.n_samps = n_samps
-        self.alpha_nr = alpha_nr
-        self.alpha_r = alpha_r
-        self.empty_intent = empty_intent
-        self.no_ref_word = no_ref_word
+        self.alpha_nr = float(alpha_nr)
+        self.alpha_r = float(alpha_r)
+        self.empty_intent = float(empty_intent)
+        self.no_ref_word = float(no_ref_word)
                
 ##### CoocLexicon is a class of lexica learned by gibbs sampling #####
 class GibbsLexicon(Lexicon):
@@ -123,7 +123,7 @@ class GibbsLexicon(Lexicon):
                         if self.verbose:
                             print self.ref
                             print self.non_ref
-                        scores[j,k] = self.scoreLex(corpus, params, i, j, k)
+                        scores[j,k] = self.scoreLexSimple(corpus, params, i, j, k)
                         if self.verbose:
                             print self.ref
                             print self.non_ref
@@ -134,6 +134,36 @@ class GibbsLexicon(Lexicon):
                 self.scoreLex(corpus, params, i, j, k)
         #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
 
+    #########
+    ## scoreLexSimple - without any of the caching stuff
+    def scoreLexSimple(self,
+                    corpus,
+                    params,
+                    i, j, k):
+
+        # reassign this j/k pair for this sentence
+        new_o = corpus.sents[i][0][self.oi[i] == j]
+        new_w = corpus.sents[i][1][self.wi[i] == k]        
+
+        self.intent_obj[i] = j
+        self.ref_word[i] = k
+
+        # update the probabilities
+        self.intent_obj_prob[i] = self.intent_obj_probs[i][j]
+        self.ref_word_prob[i] = self.ref_word_probs[i][k]
+
+        # critical part: rescore and shift counts in ref lexicon
+        self.ref[new_o, new_w] += 1
+        self.non_ref[new_w] -= 1
+
+        for o in range(corpus.world.n_objs):
+            self.ref_score[o] = scoreDM(self.ref[o,:], params.alpha_r)
+        self.nr_score = scoreDM(self.non_ref,params.alpha_nr)
+
+        score = sum(self.intent_obj_prob) + sum(self.ref_word_prob) + self.nr_score + sum(self.ref_score)
+
+        return score
+        
     #########
     ## scoreLex
     def scoreLex(self,
@@ -154,7 +184,7 @@ class GibbsLexicon(Lexicon):
 
         # critical part: rescore and shift counts in ref lexicon
         self.ref[new_o, new_w] += 1
-        if new_o and new_w:
+        if new_o.size > 0 and new_w.size > 0:
             self.ref_score[new_o] = updateDMplus(self.ref_score[new_o], self.ref[new_o,:][0],
                                                  params.alpha_r, new_w)
 
@@ -246,8 +276,8 @@ class GibbsLexicon(Lexicon):
             unif_o = log((1 - params.empty_intent)/o)
             unif_w = log((1 - params.no_ref_word)/w)
 
-            self.intent_obj_probs[i] = [unif_o]*o + [params.empty_intent]
-            self.ref_word_probs[i] = [unif_w]*o + [params.no_ref_word]
+            self.intent_obj_probs[i] = [unif_o]*o + [log(params.empty_intent)]
+            self.ref_word_probs[i] = [unif_w]*o + [log(params.no_ref_word)]
 
             # update lexicon dirichlets based on random init
             self.ref[corpus.sents[i][0][self.oi[i] == self.intent_obj[i]],
