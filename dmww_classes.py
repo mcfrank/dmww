@@ -2,7 +2,6 @@ from numpy import *
 from random import *
 from sampling_helper import *
 
-
 ################################################################
 # The model
 ################################################################
@@ -60,7 +59,9 @@ class Lexicon:
     def show(self):
         print "cooccurrence matrix:"
         print self.ref
-
+        if hasattr(self, 'non_ref'):
+            print self.non_ref
+            
 ##### CoocLexicon is a class of lexica based on co-occurrence #####
 class CoocLexicon(Lexicon):
     
@@ -78,8 +79,8 @@ class Params:
                 n_samps = 100,
                 alpha_nr = .1,
                 alpha_r = .1,
-                empty_intent = .001,
-                no_ref_word = .001):
+                empty_intent = .000001,
+                no_ref_word = .000001):
         self.n_samps = n_samps
         self.alpha_nr = alpha_nr
         self.alpha_r = alpha_r
@@ -113,14 +114,19 @@ class GibbsLexicon(Lexicon):
                 
                 for j in range(n_os): 
                     for k in range(n_ws):
-                        if self.verbose == 2: 
+                        if self.verbose: 
                             print "    j = " + str(j) + ", k = " + str(k)
                             print "    ref = " + str(self.intent_obj[i]) + "," + str(self.ref_word[s])
                             print self.ref
+                            print self.non_ref
                         self.prepLex(corpus, params, i)
-                        print self.ref
+                        if self.verbose:
+                            print self.ref
+                            print self.non_ref
                         scores[j,k] = self.scoreLex(corpus, params, i, j, k)
-                        print self.ref
+                        if self.verbose:
+                            print self.ref
+                            print self.non_ref
                         
                 # print scores
                 (j, k, win_score[s]) = chooseClass(scores)
@@ -149,7 +155,7 @@ class GibbsLexicon(Lexicon):
         # critical part: rescore and shift counts in ref lexicon
         self.ref[new_o, new_w] += 1
         if new_o and new_w:
-            self.ref_score[new_o] = updateDMplus(self.ref_score[new_o], self.ref[new_o,:],
+            self.ref_score[new_o] = updateDMplus(self.ref_score[new_o], self.ref[new_o,:][0],
                                                  params.alpha_r, new_w)
 
         if self.verbose:
@@ -173,16 +179,10 @@ class GibbsLexicon(Lexicon):
         # cache old object and word
         old_o = corpus.sents[i][0][self.oi[i] == self.intent_obj[i]]
         old_w = corpus.sents[i][1][self.wi[i] == self.ref_word[i]]
-        print "        old = " + str(old_o) + " " + str(old_w) + " "
 
         # now subtract their counts from the referential lexicon,
         # but only if there was a referred object
         if old_o.size > 0: 
-            # print self.ref
-            # print old_o
-            # print self.ref_score[old_o]
-            # print self.ref[old_o,:][0]
-            
             self.ref[old_o, old_w] -= 1            
             self.ref_score[old_o] = updateDMminus(self.ref_score[old_o],
                                                   self.ref[old_o,:][0],
@@ -197,6 +197,11 @@ class GibbsLexicon(Lexicon):
                                          self.non_ref,
                                          params.alpha_nr,
                                          old_w)
+
+        if self.verbose:
+            print "-- prep lex"
+            print "        old = " + str(old_o) + " " + str(old_w) + " "
+
     #########
     ## initLex initializes all of the lexicon bits and pieces, which include:
     ## - random guesses for intentions
@@ -227,8 +232,8 @@ class GibbsLexicon(Lexicon):
         self.ref_score = zeros(world.n_objs)
         
         # build object and word indices for quick indexing
-        self.oi = map(lambda x: range(len(x[0])), corpus.sents)
-        self.wi = map(lambda x: range(len(x[1])), corpus.sents)
+        self.oi = map(lambda x: array(range(len(x[0]))), corpus.sents)
+        self.wi = map(lambda x: array(range(len(x[1]))), corpus.sents)
 
         # now update cache
         for i in range(corpus.n_sents):
