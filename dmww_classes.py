@@ -80,12 +80,19 @@ class Params:
                 alpha_nr = .1,
                 alpha_r = .1,
                 empty_intent = .000001,
-                no_ref_word = .000001):
-        self.n_samps = n_samps
-        self.alpha_nr = float(alpha_nr)
+                no_ref_word = .000001,
+                n_hypermoves = 5):
+
+        # these are integers
+        self.n_samps = int(n_samps)
+        self.n_hypermoves = int(n_hypermoves)
+        
+        # cast these to floats to avoid weird type problems
+        self.alpha_nr = float(alpha_nr) 
         self.alpha_r = float(alpha_r)
         self.empty_intent = float(empty_intent)
         self.no_ref_word = float(no_ref_word)
+
                
 ##### CoocLexicon is a class of lexica learned by gibbs sampling #####
 class GibbsLexicon(Lexicon):
@@ -100,7 +107,8 @@ class GibbsLexicon(Lexicon):
                 params):
 
         win_score = nans(params.n_samps)
-        self.initLex(corpus, world, params)
+        self.initLex(corpus, params)
+        self.scoreFullLex(corpus, params)
 
         for s in range(params.n_samps):
             for i in range(corpus.n_sents):
@@ -132,8 +140,11 @@ class GibbsLexicon(Lexicon):
                 (j, k, win_score[s]) = chooseClass(scores)
                 # print (j, k, win_score[s])
                 self.scoreLex(corpus, params, i, j, k)
-        #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
 
+            params = hyperParamInf(corpus, params)
+            #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
+
+        
     #########
     ## scoreLexSimple - without any of the caching stuff
     def scoreLexSimple(self,
@@ -160,6 +171,57 @@ class GibbsLexicon(Lexicon):
             self.ref_score[o] = scoreDM(self.ref[o,:], params.alpha_r)
         self.nr_score = scoreDM(self.non_ref,params.alpha_nr)
 
+        score = sum(self.intent_obj_prob) + sum(self.ref_word_prob) + self.nr_score + sum(self.ref_score)
+
+        return score
+    
+    #########
+    ## scoreFullLex - rescore everything
+    ## - use this for setup in combo with initLex
+    ## - important for hyperparameter inference
+    def scoreFullLex(self,
+                    corpus,
+                    params):
+
+        # set up the intent caching
+        for i in range(corpus.n_sents):
+            # cache word and object probabilities uniformly
+            # 1 x o matrix with [uniform ... empty]
+            # and 1 x w matrix again with [uniform ... empty]
+            unif_o = log((1 - params.empty_intent)/o)
+            unif_w = log((1 - params.no_ref_word)/w)
+
+            self.intent_obj_probs[i] = [unif_o]*o + [log(params.empty_intent)]
+            self.ref_word_probs[i] = [unif_w]*o + [log(params.no_ref_word)]
+
+            # update lexicon dirichlets based on random init
+            self.ref[corpus.sents[i][0][self.oi[i] == self.intent_obj[i]],
+                    corpus.sents[i][1][self.wi[i] == self.ref_word[i]]] += 1
+            self.non_ref[corpus.sents[i][1][self.wi[i] != self.ref_word[i]]] += 1
+
+            # now set up the quick scoring probability caches
+            self.intent_obj_prob[i] = self.intent_obj_probs[i][self.intent_obj[i]]
+            self.ref_word_prob[i] = self.ref_word_probs[i][self.ref_word[i]]
+        
+        # cache DM scores for lexicon
+        for i in range(corpus.world.n_objs):
+            self.ref_score[i] = scoreDM(self.ref[i,:], params.alpha_r)
+
+        # cache non-ref DM score also
+        self.nr_score = scoreDM(self.non_ref, params.alpha_nr)
+
+        # debugging stuff
+        if self.verbose:
+            print "-- init lex"
+            print "    intent obj: " + str(self.intent_obj)
+            print "    intent obj prob: " + str(self.intent_obj_prob)
+            print "    ref word: " + str(self.ref_word)
+            print "    ref word prob: " + str(self.ref_word_prob)
+            print "lex: " + str(self.ref)
+            print "nr lex: " + str(self.non_ref)
+            print "    ref score: " + str(self.ref_score)
+            print "    nref score: " + str(self.nr_score)
+        
         score = sum(self.intent_obj_prob) + sum(self.ref_word_prob) + self.nr_score + sum(self.ref_score)
 
         return score
@@ -233,18 +295,33 @@ class GibbsLexicon(Lexicon):
             print "        old = " + str(old_o) + " " + str(old_w) + " "
 
     #########
+    ## hyperParamInf implements hyperparameter inference
+    def hyperParamInf(self,
+                 corpus,
+                 params):
+
+        for i in range(params.n_hypermoves):
+            new_params = self.proposeHyperparams(params)
+            score = scoreFullLexicon(corpus,new_params)
+
+            if random() < exp(new_score - score):
+                params = new_params
+
+        return new_params
+    
+
+    #########
     ## initLex initializes all of the lexicon bits and pieces, which include:
     ## - random guesses for intentions
     ## - counts for lexicon based on this
     ## - score caches for all words
     def initLex(self,
                  corpus,
-                 world,
                  params):
         
         # initialize the relevant variables
-        self.ref = zeros((world.n_objs, world.n_words))
-        self.non_ref = zeros((world.n_words))
+        self.ref = zeros((corpus.world.n_objs, corpus.world.n_words))
+        self.non_ref = zeros((corpus.world.n_words))
         self.intent_obj = zeros(corpus.n_sents, dtype=int)
         self.ref_word = zeros(corpus.n_sents, dtype=int)
 
@@ -259,7 +336,7 @@ class GibbsLexicon(Lexicon):
         self.ref_word_probs = [None] * corpus.n_sents # list
         self.intent_obj_prob = zeros(corpus.n_sents) # numpy array
         self.ref_word_prob = zeros(corpus.n_sents) # numpy array
-        self.ref_score = zeros(world.n_objs)
+        self.ref_score = zeros(corpus.world.n_objs)
         
         # build object and word indices for quick indexing
         self.oi = map(lambda x: array(range(len(x[0]))), corpus.sents)
@@ -270,41 +347,4 @@ class GibbsLexicon(Lexicon):
             o = len(corpus.sents[i][0])
             w = len(corpus.sents[i][1])
 
-            # and cache word and object probabilities uniformly
-            # 1 x o matrix with [uniform ... empty]
-            # and 1 x w matrix again with [uniform ... empty]
-            unif_o = log((1 - params.empty_intent)/o)
-            unif_w = log((1 - params.no_ref_word)/w)
-
-            self.intent_obj_probs[i] = [unif_o]*o + [log(params.empty_intent)]
-            self.ref_word_probs[i] = [unif_w]*o + [log(params.no_ref_word)]
-
-            # update lexicon dirichlets based on random init
-            self.ref[corpus.sents[i][0][self.oi[i] == self.intent_obj[i]],
-                    corpus.sents[i][1][self.wi[i] == self.ref_word[i]]] += 1
-            self.non_ref[corpus.sents[i][1][self.wi[i] != self.ref_word[i]]] += 1
-
-            self.intent_obj_prob[i] = self.intent_obj_probs[i][self.intent_obj[i]]
-            self.ref_word_prob[i] = self.ref_word_probs[i][self.ref_word[i]]
-        
-        # cache DM scores for lexicon
-        for i in range(world.n_objs):
-            self.ref_score[i] = scoreDM(self.ref[i,:], params.alpha_r)
-
-        # cache non-ref DM score also
-        self.nr_score = scoreDM(self.non_ref, params.alpha_nr)
-
-        # debugging stuff
-        if self.verbose:
-            print "-- init lex"
-            print "    intent obj: " + str(self.intent_obj)
-            print "    intent obj prob: " + str(self.intent_obj_prob)
-            print "    ref word: " + str(self.ref_word)
-            print "    ref word prob: " + str(self.ref_word_prob)
-            print "lex: " + str(self.ref)
-            print "nr lex: " + str(self.non_ref)
-            print "    ref score: " + str(self.ref_score)
-            print "    nref score: " + str(self.nr_score)
-        
- 
 

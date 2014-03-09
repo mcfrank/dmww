@@ -42,6 +42,45 @@ def chooseClassTemp(scores, temp): ## unfinished
     ps = ps / sum(sum(ps))
     None
 
+#########
+## proposeHyperparams
+def proposeHyperparams(self,
+                 params):
+
+    params.alpha_nr = alterUnnoundedVar(params.alpha_nr)
+    params.alpha_r = alterUnboundedVar(params.alpha_r)
+    params.empty_intent = alterBoundedVar(params.empty_intent)
+    params.no_ref_word = alterBoundedVar(params.no_ref_word)
+
+#########
+## for variables that can't go below zero
+def alterUnboundedVar(ob):
+    nb = ob
+  
+    if random() > .5:
+        nb = ob + exp(gauss(0,2))
+    else:
+        nb = ob - exp(gauss(0,2))
+  
+    # can't go below zero
+    if nb < 0:
+        nb = ob
+
+    return nb
+
+def alterBoundedVar(ob):
+    nb = ob
+  
+    if random() > .5:
+        nb = ob + gauss(0,.1)
+    else:
+        nb = ob - gauss(0,.1)
+  
+    # can't go below zero or above one
+    if nb <= 0 or nb >= 1:
+         nb = ob
+
+
 ########################################################################
 ## FUNCTIONS FOR DIRICHLET-MULTINOMIAL UPDATES
 ## matlab equivalents above
