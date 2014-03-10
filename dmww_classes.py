@@ -259,7 +259,7 @@ class GibbsLexicon(Lexicon):
 
         # debugging stuff
         if self.verbose:
-            print "-- init lex"
+            print "-- score full lex"
             print "    intent obj: " + str(self.intent_obj)
             print "    intent obj prob: " + str(self.intent_obj_prob)
             print "    ref word: " + str(self.ref_word)

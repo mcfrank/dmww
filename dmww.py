@@ -21,7 +21,11 @@ l.learn_lex(c)
 l.show()
 
 print "*** gibbs test ***"
-p = Params(n_samps=10)
-l = GibbsLexicon(c,p)
+p = Params(n_samps=1,
+           alpha_r=.1,
+           alpha_nr=10,
+           empty_intent=.0001,
+           no_ref_word=.000001)
+l = GibbsLexicon(c,p,verbose=1)
 l.learn_lex(c,p)
 l.show()
