@@ -12,16 +12,16 @@ w = World()
 w.show()
             
 c = Corpus(w)
-c.sampleSents()
+c.sample_sents()
 c.show()
 
 print "*** coocurrence test ***"
 l = CoocLexicon()
-l.learnLex(w,c)
+l.learn_lex(c)
 l.show()
 
 print "*** gibbs test ***"
-l = GibbsLexicon()
-p = Params(n_samps=100)
-l.learnLex(w,c,p)
+p = Params(n_samps=10)
+l = GibbsLexicon(c,p)
+l.learn_lex(c,p)
 l.show()
