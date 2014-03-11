@@ -45,15 +45,7 @@ def choose_class(scores):
 #     None
 
 
-#########
-## propose_hyperparams
-def propose_hyper_params(params):
-    params.alpha_nr = alter_0inf_var(params.alpha_nr)
-    params.alpha_r = alter_0inf_var(params.alpha_r)
-    params.empty_intent = alter_01_var(params.empty_intent)
-    params.no_ref_word = alter_01_var(params.no_ref_word)
 
-    return params
 
 
 #########
@@ -77,10 +69,7 @@ def alter_0inf_var(ob):
 def alter_01_var(ob):
     nb = ob
 
-    if random() > .5:
-        nb = ob + gauss(0, .1)
-    else:
-        nb = ob - gauss(0, .1)
+    nb = ob + inv_logit(gauss(0, 10))
 
     # can't go below zero or above one
     if nb <= 0 or nb >= 1:
@@ -88,6 +77,11 @@ def alter_01_var(ob):
 
     return nb
 
+
+def inv_logit(x):
+    y = exp(x) / (1 + exp(x))
+
+    return y
 
 ########################################################################
 ## FUNCTIONS FOR DIRICHLET-MULTINOMIAL UPDATES
