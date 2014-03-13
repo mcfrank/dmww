@@ -56,7 +56,7 @@ class Lexicon:
     def __init__(self,
                  world=World(),
                  verbose=0):
-        self.lex = None
+
         self.verbose = verbose
         self.ref = zeros((world.n_objs, world.n_words))
 
@@ -89,7 +89,7 @@ class Params:
                  alpha_r_hp=1,
                  alpha_nr_hp=2,
                  intent_hp_a=1,
-                 intent_hp_b=1,
+                 intent_hp_b=10,
                  n_hypermoves=5):
 
         # these are integers
@@ -156,8 +156,16 @@ class GibbsLexicon(Lexicon):
         # choose random word and object to be talked about in each sentence
         # or consider the null topic/object (the +1)
         for i in range(corpus.n_sents):
-            self.intent_obj[i] = sample(range(len(corpus.sents[i][0]) + 1), 1)[0]
-            self.ref_word[i] = sample(range(len(corpus.sents[i][1]) + 1), 1)[0]
+            n_os = len(corpus.sents[i][0])
+            n_ws = len(corpus.sents[i][1])
+
+            self.intent_obj[i] = sample(range(n_os + 1), 1)[0]
+
+            # if it's the null intention, it needs to be the null word
+            if self.intent_obj[i] == n_os:
+                self.ref_word[i] = n_ws  # null
+            else:
+                self.ref_word[i] = sample(range(n_ws + 1), 1)[0]
 
         # initialize cached probabilities
         self.intent_obj_probs = [None] * corpus.n_sents  # list
@@ -192,23 +200,28 @@ class GibbsLexicon(Lexicon):
                 if self.verbose > 1:
                     print "sent " + str(i) + " - " + str(corpus.sents[i]) + " :"
 
-                n_os = len(corpus.sents[i][1]) + 1  # +1 for null
-                n_ws = len(corpus.sents[i][0]) + 1
+                n_os = len(corpus.sents[i][1])
+                n_ws = len(corpus.sents[i][0])
 
-                scores = zeros((n_os, n_ws))
+                scores = neg_infs((n_os+1, n_ws+1)) # +1 for null
 
-                for j in range(n_os):
-                    for k in range(n_ws):
-                        if self.verbose > 2:
+                for j in range(n_os + 1):  # +1 for null
+                    for k in range(n_ws + 1):
+                        # print "\nbefore: total counts: " + str(sum(sum(self.ref)) + sum(self.non_ref))
+                        # print "after prep: total counts: " + str(sum(sum(self.ref)) + sum(self.non_ref))
+
+                        if self.verbose > 1:
                             print "    j = " + str(j) + ", k = " + str(k)
                             print "    ref = " + str(self.intent_obj[i]) + "," + str(self.ref_word[s])
                             print self.ref
                             print self.non_ref
-                        self.prep_lex(corpus, params, i)
-                        if self.verbose > 1:
-                            print self.ref
-                            print self.non_ref
-                        scores[j, k] = self.score_lex_simple(corpus, params, i, j, k)
+
+                        if not (j == n_os and k < n_ws):  # condition to ensure non-ref intent gets non-ref word
+                            self.prep_lex(corpus, params, i)
+                            scores[j, k] = self.score_lex_simple(corpus, params, i, j, k)
+
+                        # print "after score: total counts: " + str(sum(sum(self.ref)) + sum(self.non_ref))
+
                         if self.verbose > 1:
                             print "r:" + str(self.ref)
                             print "nr: " + str(self.non_ref)
@@ -220,11 +233,14 @@ class GibbsLexicon(Lexicon):
                                   str(scores[j, k])
 
                 (j, k, win_score[s]) = choose_class(scores)
+                # print "\ntotal counts: " + str(sum(sum(self.ref)) + sum(self.non_ref))
                 score = self.score_lex_simple(corpus, params, i, j, k)
+                # print "total counts: " + str(sum(sum(self.ref)) + sum(self.non_ref))
 
             if self.verbose > 0:
                 print "r:" + str(self.ref)
                 print "nr: " + str(self.non_ref)
+                print "total counts: " + str(sum(sum(self.ref)) + sum(self.non_ref))
                 print "*** scores: " + str(round(sum(self.ref_score))) + ", " + \
                       str(round(self.nr_score)) + ", " + \
                       str(round(sum(self.intent_obj_prob))) + ", " + \
@@ -269,6 +285,7 @@ class GibbsLexicon(Lexicon):
 
         return score
 
+
     #########
     ## scoreFullLex - rescore everything
     ## - use this for setup in combo with initLex
@@ -296,6 +313,8 @@ class GibbsLexicon(Lexicon):
                 # update lexicon dirichlets based on random init
                 self.ref[corpus.sents[i][0][self.oi[i] == self.intent_obj[i]],
                          corpus.sents[i][1][self.wi[i] == self.ref_word[i]]] += 1
+
+                # includes all words that are not the referential word
                 self.non_ref[corpus.sents[i][1][self.wi[i] != self.ref_word[i]]] += 1
 
             # now set up the quick scoring probability caches

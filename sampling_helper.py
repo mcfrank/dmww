@@ -141,3 +141,8 @@ def nans(desired_shape, dtype=float):
     a = empty(desired_shape, dtype)
     a.fill(nan)
     return a
+
+def neg_infs(desired_shape, dtype=float):
+    a = empty(desired_shape, dtype)
+    a.fill(-Inf)
+    return a
