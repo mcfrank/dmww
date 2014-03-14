@@ -24,7 +24,7 @@ l.learn_lex(c)
 l.show()
 
 print "*** gibbs test ***"
-p = Params(n_samps=500,
+p = Params(n_samps=1,
            alpha_r=.1,
            alpha_nr=10,
            empty_intent=.0001,

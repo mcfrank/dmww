@@ -3,21 +3,48 @@ from random import *
 from sampling_helper import *
 from scipy.stats import gamma, beta
 import sys
+from corpus_helper import *
 
 ################################################################
 # The model
 ################################################################
 
 ##### world class #####
-# gives the basics of the world in which learning takes plae
+# gives the basics of the world in which learning takes place
 
 class World:
     def __init__(self,
-                 n_words=4,
-                 n_objs=4):
+                 n_words = 4,
+                 n_objs = 4,
+                 corpus = False):
         self.n_words = n_words
         self.n_objs = n_objs
+        self.corpus = corpus
 
+        if (self.corpus != False):
+            raw_corpus = loadtxt(corpus, delimiter=',', dtype=str)
+
+            # create dictionary that maps word labels to numbers and object labels to numbers
+            # first, get all unique words and objects
+            all_words = list()
+            all_objs = list()
+            for i in range(0,shape(raw_corpus)[0]): 
+                all_words.extend(str.split(raw_corpus[i][0]))
+                all_objs.extend(str.split(raw_corpus[i][1]))
+
+            # now, create two dictionaries  
+            u_words = list(set(all_words))
+            self.n_words = size(u_words)
+            self.words_dict = list()
+            for i in range(0,size(u_words)): 
+                self.words_dict.append([u_words[i], i])
+                
+            u_objs = list(set(all_objs))
+            self.n_objs = size(u_objs)
+            self.objs_dict = list()
+            for i in range(0,size(u_objs)): 
+                self.objs_dict.append([u_objs[i], i])
+            
     def show(self):
         print "n_words = " + str(self.n_words)
         print "n_objs = " + str(self.n_objs)
@@ -30,11 +57,37 @@ class Corpus:
     def __init__(self,
                  world=World(),
                  n_per_sent=2,
-                 n_sents=12):
+                 n_sents=12,
+                 corpus = False):
         self.sents = list()
         self.world = world
         self.n_sents = n_sents
         self.n_per_sent = n_per_sent
+        self.corpus = corpus
+    
+        # convert corpus from labels to numbers
+        if (corpus != False):
+            raw_corpus = loadtxt(self.corpus, delimiter=',', dtype=str)
+            self.sents = list()
+            
+            for s in range(shape(raw_corpus)[0]):
+                sent = list()
+                
+                #add words
+                word_labs = str.split(raw_corpus[s][0])
+                words = list()
+                for i in range(size(word_labs)):
+                   words.append(world.words_dict[find(world.words_dict, word_labs[i])[0]][1])
+                sent.append(array(words))
+                
+                #add objs
+                objs_labs = str.split(raw_corpus[s][1])
+                objs = list()
+                for i in range(size(objs_labs)):
+                   objs.append(world.objs_dict[find(world.objs_dict, objs_labs[i])[0]][1])
+                sent.append(array(objs))
+                
+                self.sents.append(sent)
 
     def sample_sents(self):
 
