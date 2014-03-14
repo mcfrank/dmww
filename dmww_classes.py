@@ -14,9 +14,10 @@ from corpus_helper import *
 
 class World:
     def __init__(self,
-                 n_words = 4,
-                 n_objs = 4,
-                 corpus = False):
+                 n_words=4,
+                 n_objs=4,
+                 corpus=False):
+
         self.n_words = n_words
         self.n_objs = n_objs
         self.corpus = corpus
@@ -29,25 +30,26 @@ class World:
             all_words = list()
             all_objs = list()
             for i in range(0,shape(raw_corpus)[0]): 
-                all_words.extend(str.split(raw_corpus[i][0]))
-                all_objs.extend(str.split(raw_corpus[i][1]))
+                all_objs.extend(str.split(raw_corpus[i][0]))
+                all_words.extend(str.split(raw_corpus[i][1]))
 
-            # now, create two dictionaries  
-            u_words = list(set(all_words))
-            self.n_words = size(u_words)
-            self.words_dict = list()
-            for i in range(0,size(u_words)): 
-                self.words_dict.append([u_words[i], i])
-                
+            # now, create two dictionaries
             u_objs = list(set(all_objs))
             self.n_objs = size(u_objs)
             self.objs_dict = list()
             for i in range(0,size(u_objs)): 
                 self.objs_dict.append([u_objs[i], i])
+
+            u_words = list(set(all_words))
+            self.n_words = size(u_words)
+            self.words_dict = list()
+            for i in range(0,size(u_words)):
+                self.words_dict.append([u_words[i], i])
+
             
     def show(self):
-        print "n_words = " + str(self.n_words)
         print "n_objs = " + str(self.n_objs)
+        print "n_words = " + str(self.n_words)
 
 
 ##### corpus class #####
@@ -59,6 +61,7 @@ class Corpus:
                  n_per_sent=2,
                  n_sents=12,
                  corpus = False):
+
         self.sents = list()
         self.world = world
         self.n_sents = n_sents
@@ -66,28 +69,30 @@ class Corpus:
         self.corpus = corpus
     
         # convert corpus from labels to numbers
-        if (corpus != False):
+        if (self.corpus != False):
             raw_corpus = loadtxt(self.corpus, delimiter=',', dtype=str)
             self.sents = list()
             
             for s in range(shape(raw_corpus)[0]):
                 sent = list()
-                
-                #add words
-                word_labs = str.split(raw_corpus[s][0])
-                words = list()
-                for i in range(size(word_labs)):
-                   words.append(world.words_dict[find(world.words_dict, word_labs[i])[0]][1])
-                sent.append(array(words))
-                
+
                 #add objs
-                objs_labs = str.split(raw_corpus[s][1])
+                objs_labs = str.split(raw_corpus[s][0])
                 objs = list()
                 for i in range(size(objs_labs)):
                    objs.append(world.objs_dict[find(world.objs_dict, objs_labs[i])[0]][1])
                 sent.append(array(objs))
-                
+
+                #add words
+                word_labs = str.split(raw_corpus[s][1])
+                words = list()
+                for i in range(size(word_labs)):
+                   words.append(world.words_dict[find(world.words_dict, word_labs[i])[0]][1])
+                sent.append(array(words))
+
                 self.sents.append(sent)
+
+            self.n_sents = len(self.sents)
 
     def sample_sents(self):
 
@@ -102,7 +107,7 @@ class Corpus:
 
     def show(self):
         for s in self.sents:
-            print "w: " + str(s[0]) + " o: " + str(s[1])
+            print "o: " + str(s[0]) + " w: " + str(s[1])
 
 
 ##### lexicon class is the main classs #####
@@ -119,6 +124,17 @@ class Lexicon:
         if hasattr(self, 'non_ref'):
             print self.non_ref
 
+    def show_top_match(self, corpus, world):
+        if corpus.corpus != False:
+            for o in range(world.n_objs):
+                if max(self.ref[o,:]) > 0:
+                    w = where(self.ref[o,:] == max(self.ref[o,:]))[0]
+                    print "object: %s, word: %s" % (world.objs_dict[o][0], world.words_dict[w[0]][0])
+        else:
+            for o in range(world.n_objs):
+                w = where(self.ref[o,:] == max(self.ref[o,:]))[0]
+                print "object: %d, word: %d" % (o, w)
+
 
 ##### CoocLexicon is a class of lexica based on co-occurrence #####
 class CoocLexicon(Lexicon):
@@ -126,8 +142,8 @@ class CoocLexicon(Lexicon):
     def learn_lex(self, corpus):
 
         for s in corpus.sents:
-            for w in s[0]:
-                for o in s[1]:
+            for o in s[0]:
+                for w in s[1]:
                     self.ref[o, w] += 1
 
 
@@ -247,16 +263,17 @@ class GibbsLexicon(Lexicon):
             if self.verbose > 0:
                 print "\n*************** sample %d ***************" % s
             else:
-                sys.stdout.write(".")
                 if mod(s,80) == 0:
                     print "\n"
+                else:
+                    sys.stdout.write(".")
 
             for i in range(corpus.n_sents):
                 if self.verbose > 1:
                     print "sent " + str(i) + " - " + str(corpus.sents[i]) + " :"
 
-                n_os = len(corpus.sents[i][1])
-                n_ws = len(corpus.sents[i][0])
+                n_os = len(corpus.sents[i][0])
+                n_ws = len(corpus.sents[i][1])
 
                 scores = neg_infs((n_os + 1, n_ws + 1))  # +1 for null
 
@@ -265,7 +282,7 @@ class GibbsLexicon(Lexicon):
                         if not (j == n_os and k < n_ws):  # condition to ensure non-ref intent gets non-ref word
                             if self.verbose > 1:
                                 print "    j = " + str(j) + ", k = " + str(k)
-                                print "    ref = " + str(self.intent_obj[i]) + "," + str(self.ref_word[s])
+                                print "    ref = " + str(self.intent_obj[i]) + "," + str(self.ref_word[i])
                                 print self.ref
                                 print self.non_ref
 
@@ -303,6 +320,7 @@ class GibbsLexicon(Lexicon):
 
                     #########
                     ## scoreLexSimple - without any of the caching stuff
+        self.params = params
 
 
     def score_lex_simple(self,
@@ -345,17 +363,17 @@ class GibbsLexicon(Lexicon):
                        init=False):
         # set up the intent caching
         for i in range(corpus.n_sents):
-            o = len(corpus.sents[i][0])
-            w = len(corpus.sents[i][1])
+            n_os = len(corpus.sents[i][0])
+            n_ws = len(corpus.sents[i][1])
 
             # cache word and object probabilities uniformly
             # 1 x o matrix with [uniform ... empty]
             # and 1 x w matrix again with [uniform ... empty]
-            unif_o = log((1 - params.empty_intent) / o)
-            unif_w = log((1 - params.no_ref_word) / w)
+            unif_o = log((1 - params.empty_intent) / n_os)
+            unif_w = log((1 - params.no_ref_word) / n_ws)
 
-            self.intent_obj_probs[i] = [unif_o] * o + [log(params.empty_intent)]
-            self.ref_word_probs[i] = [unif_w] * o + [log(params.no_ref_word)]
+            self.intent_obj_probs[i] = [unif_o] * n_os + [log(params.empty_intent)]
+            self.ref_word_probs[i] = [unif_w] * n_ws + [log(params.no_ref_word)]
 
             if init:
                 # update lexicon dirichlets based on random init
@@ -420,7 +438,7 @@ class GibbsLexicon(Lexicon):
             self.ref_score[old_o] = update_dm_minus(self.ref_score[old_o],
                                                     self.ref[old_o, :][0],
                                                     params.alpha_r,
-                                                    old_o)
+                                                    old_w)
 
         # and add back to the non-referential lexicon,
         # again only if there's a referring word
@@ -442,10 +460,12 @@ class GibbsLexicon(Lexicon):
                         corpus,
                         params,
                         score):
+        if self.verbose > 0:
+            print "\n****** HP INFERENCE *******"
+
         for i in range(params.n_hypermoves):
-            if self.verbose > 0:
-                print "\n****** HP INFERENCE *******"
-                print "--- current params ---"
+            if self.verbose > 1:
+                print "\n--- current params ---"
                 params.show()
                 print "hyper param score:" + str(score)
 
