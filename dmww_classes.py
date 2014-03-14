@@ -2,6 +2,7 @@ from numpy import *
 from random import *
 from sampling_helper import *
 from scipy.stats import gamma, beta
+import sys
 
 ################################################################
 # The model
@@ -53,10 +54,8 @@ class Corpus:
 
 ##### lexicon class is the main classs #####
 class Lexicon:
-    def __init__(self,
-                 world=World(),
+    def __init__(self,world,
                  verbose=0):
-
         self.verbose = verbose
         self.ref = zeros((world.n_objs, world.n_words))
 
@@ -89,7 +88,7 @@ class Params:
                  alpha_r_hp=1,
                  alpha_nr_hp=2,
                  intent_hp_a=1,
-                 intent_hp_b=10,
+                 intent_hp_b=1,
                  n_hypermoves=5):
 
         # these are integers
@@ -122,8 +121,8 @@ class Params:
 
         self.alpha_nr = alter_0inf_var(nps.alpha_nr)
         self.alpha_r = alter_0inf_var(nps.alpha_r)
-        self.empty_intent = alter_01_var(nps.empty_intent)
-        self.no_ref_word = alter_01_var(nps.no_ref_word)
+        # self.empty_intent = alter_01_var(nps.empty_intent)
+        # self.no_ref_word = alter_01_var(nps.no_ref_word)
 
         return nps
 
@@ -195,6 +194,10 @@ class GibbsLexicon(Lexicon):
         for s in range(params.n_samps):
             if self.verbose > 0:
                 print "\n*************** sample %d ***************" % s
+            else:
+                sys.stdout.write(".")
+                if mod(s,80) == 0:
+                    print "\n"
 
             for i in range(corpus.n_sents):
                 if self.verbose > 1:
@@ -203,63 +206,57 @@ class GibbsLexicon(Lexicon):
                 n_os = len(corpus.sents[i][1])
                 n_ws = len(corpus.sents[i][0])
 
-                scores = neg_infs((n_os+1, n_ws+1)) # +1 for null
+                scores = neg_infs((n_os + 1, n_ws + 1))  # +1 for null
 
                 for j in range(n_os + 1):  # +1 for null
                     for k in range(n_ws + 1):
-                        # print "\nbefore: total counts: " + str(sum(sum(self.ref)) + sum(self.non_ref))
-                        # print "after prep: total counts: " + str(sum(sum(self.ref)) + sum(self.non_ref))
-
-                        if self.verbose > 1:
-                            print "    j = " + str(j) + ", k = " + str(k)
-                            print "    ref = " + str(self.intent_obj[i]) + "," + str(self.ref_word[s])
-                            print self.ref
-                            print self.non_ref
-
                         if not (j == n_os and k < n_ws):  # condition to ensure non-ref intent gets non-ref word
+                            if self.verbose > 1:
+                                print "    j = " + str(j) + ", k = " + str(k)
+                                print "    ref = " + str(self.intent_obj[i]) + "," + str(self.ref_word[s])
+                                print self.ref
+                                print self.non_ref
+
                             self.prep_lex(corpus, params, i)
                             scores[j, k] = self.score_lex_simple(corpus, params, i, j, k)
 
-                        # print "after score: total counts: " + str(sum(sum(self.ref)) + sum(self.non_ref))
-
-                        if self.verbose > 1:
-                            print "r:" + str(self.ref)
-                            print "nr: " + str(self.non_ref)
-                            print "*** scores: " + str(round(sum(self.ref_score))) + ", " + \
-                                  str(round(self.nr_score)) + ", " + \
-                                  str(round(sum(self.intent_obj_prob))) + ", " + \
-                                  str(round(sum(self.ref_word_prob))) + ", " + \
-                                  str(round(self.param_score)) + ", total:" + \
-                                  str(scores[j, k])
+                            if self.verbose > 1:
+                                print "r:" + str(self.ref)
+                                print "nr: " + str(self.non_ref)
+                                print "interim scores: %2.1f, %2.1f, %2.1f, " \
+                                      "%2.1f, %2.1f, total: %2.1f" % (sum(self.ref_score),
+                                                                      self.nr_score,
+                                                                      sum(self.intent_obj_prob),
+                                                                      sum(self.ref_word_prob),
+                                                                      self.param_score,scores[j, k])
 
                 (j, k, win_score[s]) = choose_class(scores)
-                # print "\ntotal counts: " + str(sum(sum(self.ref)) + sum(self.non_ref))
                 score = self.score_lex_simple(corpus, params, i, j, k)
-                # print "total counts: " + str(sum(sum(self.ref)) + sum(self.non_ref))
 
-            if self.verbose > 0:
-                print "r:" + str(self.ref)
-                print "nr: " + str(self.non_ref)
-                print "total counts: " + str(sum(sum(self.ref)) + sum(self.non_ref))
-                print "*** scores: " + str(round(sum(self.ref_score))) + ", " + \
-                      str(round(self.nr_score)) + ", " + \
-                      str(round(sum(self.intent_obj_prob))) + ", " + \
-                      str(round(sum(self.ref_word_prob))) + ", " + \
-                      str(round(self.param_score)) + ", total:" + \
-                      str(round(scores[j, k]))
+                if self.verbose > 0:
+                    print "r:" + str(self.ref)
+                    print "nr: " + str(self.non_ref)
+                    print "total counts: " + str(sum(sum(self.ref)) + sum(self.non_ref))
+                    print "    *** scores: %2.1f, %2.1f, %2.1f, " \
+                          "%2.1f, %2.1f, total: %2.1f ***" % (sum(self.ref_score),
+                                                          self.nr_score,
+                                                          sum(self.intent_obj_prob),
+                                                          sum(self.ref_word_prob),
+                                                          self.param_score,scores[j, k])
 
             if self.hyper_inf:
                 params = self.hyper_param_inf(corpus, params, score)
-                #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
+                    #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
 
 
-    #########
-    ## scoreLexSimple - without any of the caching stuff
+                    #########
+                    ## scoreLexSimple - without any of the caching stuff
+
+
     def score_lex_simple(self,
                          corpus,
                          params,
                          i, j, k):
-
         # reassign this j/k pair for this sentence
         new_o = corpus.sents[i][0][self.oi[i] == j]
         new_w = corpus.sents[i][1][self.wi[i] == k]
@@ -294,7 +291,6 @@ class GibbsLexicon(Lexicon):
                        corpus,
                        params,
                        init=False):
-
         # set up the intent caching
         for i in range(corpus.n_sents):
             o = len(corpus.sents[i][0])
@@ -339,9 +335,9 @@ class GibbsLexicon(Lexicon):
         if self.verbose > 1:
             print "-- score full lex"
             print "    intent obj: " + str(self.intent_obj)
-            print "    intent obj prob: " + str(self.intent_obj_prob)
+            print "    intent obj prob: " + str(self.intent_obj_prob.round(1))
             print "    ref word: " + str(self.ref_word)
-            print "    ref word prob: " + str(self.ref_word_prob)
+            print "    ref word prob: " + str(self.ref_word_prob.round(1))
             print "lex: " + str(self.ref)
             print "nr lex: " + str(self.non_ref)
             print "    ref score: " + str(self.ref_score)
@@ -357,10 +353,10 @@ class GibbsLexicon(Lexicon):
 
         return score
 
-    #########
-    ## prepLex subtracts out the current counts for this particular referential word and referred object, so that this can be done once and then counts can be added for each pairing quickly and independently via the gibbs loop. (It's just factoring out a step that would have to be done by each iteration of the block gibbs). 
-    def prep_lex(self, corpus, params, i):
 
+    #########
+    ## prepLex subtracts out the current counts for this particular referential word and referred object, so that this can be done once and then counts can be added for each pairing quickly and independently via the gibbs loop. (It's just factoring out a step that would have to be done by each iteration of the block gibbs).
+    def prep_lex(self, corpus, params, i):
         # cache old object and word
         old_o = corpus.sents[i][0][self.oi[i] == self.intent_obj[i]]
         old_w = corpus.sents[i][1][self.wi[i] == self.ref_word[i]]
@@ -387,17 +383,19 @@ class GibbsLexicon(Lexicon):
             print "-- prep lex"
             print "        old = " + str(old_o) + " " + str(old_w) + " "
 
+
     #########
     ## hyperParamInf implements hyperparameter inference
     def hyper_param_inf(self,
                         corpus,
                         params,
                         score):
-
         for i in range(params.n_hypermoves):
-            if self.verbose > 1:
-                print "** current params **"
+            if self.verbose > 0:
+                print "\n****** HP INFERENCE *******"
+                print "--- current params ---"
                 params.show()
+                print "hyper param score:" + str(score)
 
             new_params = Params()
             new_params.propose_hyper_params(params)
@@ -406,10 +404,9 @@ class GibbsLexicon(Lexicon):
             # params.show()
 
             if self.verbose > 1:
-                print "** new params **"
+                print "--- new params ---"
                 new_params.show()
                 print "hyper param score:" + str(new_score)
-                print "\n"
 
             if random() < exp(new_score - score):
                 params = new_params
@@ -417,50 +414,46 @@ class GibbsLexicon(Lexicon):
                 if self.verbose > 0:
                     print "    hp change! - old = %2.2f, new = %2.2f" % (score, new_score)
 
-        if self.verbose > 0:
-            print "*** current parameters ***"
-            params.show()
-
-        # now rescore with the new parameters (redundant if you didn't swap, FIXME)
+        # now rescore with the new parameters - redundant if you didn't swap, FIXME
         self.score_full_lex(corpus, params)
 
         return params
 
 
-        # #########
-        # ## scoreLex
-        # def score_lex(self,
-        #              corpus,
-        #              params,
-        #              i, j, k):
-        #
-        #     # reassign this j/k pair for this sentence
-        #     new_o = corpus.sents[i][0][self.oi[i] == j]
-        #     new_w = corpus.sents[i][1][self.wi[i] == k]
-        #
-        #     self.intent_obj[i] = j
-        #     self.ref_word[i] = k
-        #
-        #     # update the probabilities
-        #     self.intent_obj_prob[i] = self.intent_obj_probs[i][j]
-        #     self.ref_word_prob[i] = self.ref_word_probs[i][k]
-        #
-        #     # critical part: rescore and shift counts in ref lexicon
-        #     self.ref[new_o, new_w] += 1
-        #     if new_o.size > 0 and new_w.size > 0:
-        #         self.ref_score[new_o] = updateDMplus(self.ref_score[new_o], self.ref[new_o, :][0],
-        #                                              params.alpha_r, new_w)
-        #
-        #     if self.verbose:
-        #         print "-- score lex"
-        #         print "    new o: " + str(new_o) + " , new w: " + str(new_w)
-        #
-        #     # and non-ref lexicon
-        #     self.non_ref[new_w] -= 1
-        #     if new_w.size > 0:
-        #         self.nr_score = updateDMminus(self.nr_score, self.non_ref,
-        #                                       params.alpha_nr, new_w)
-        #
-        #     score = sum(self.intent_obj_prob) + sum(self.ref_word_prob) + self.nr_score + sum(self.ref_score)
-        #
-        #     return score
+    # #########
+    # ## scoreLex
+    # def score_lex(self,
+    #              corpus,
+    #              params,
+    #              i, j, k):
+    #
+    #     # reassign this j/k pair for this sentence
+    #     new_o = corpus.sents[i][0][self.oi[i] == j]
+    #     new_w = corpus.sents[i][1][self.wi[i] == k]
+    #
+    #     self.intent_obj[i] = j
+    #     self.ref_word[i] = k
+    #
+    #     # update the probabilities
+    #     self.intent_obj_prob[i] = self.intent_obj_probs[i][j]
+    #     self.ref_word_prob[i] = self.ref_word_probs[i][k]
+    #
+    #     # critical part: rescore and shift counts in ref lexicon
+    #     self.ref[new_o, new_w] += 1
+    #     if new_o.size > 0 and new_w.size > 0:
+    #         self.ref_score[new_o] = updateDMplus(self.ref_score[new_o], self.ref[new_o, :][0],
+    #                                              params.alpha_r, new_w)
+    #
+    #     if self.verbose:
+    #         print "-- score lex"
+    #         print "    new o: " + str(new_o) + " , new w: " + str(new_w)
+    #
+    #     # and non-ref lexicon
+    #     self.non_ref[new_w] -= 1
+    #     if new_w.size > 0:
+    #         self.nr_score = updateDMminus(self.nr_score, self.non_ref,
+    #                                       params.alpha_nr, new_w)
+    #
+    #     score = sum(self.intent_obj_prob) + sum(self.ref_word_prob) + self.nr_score + sum(self.ref_score)
+    #
+    #     return score
