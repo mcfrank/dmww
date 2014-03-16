@@ -22,7 +22,7 @@ class World:
         self.n_objs = n_objs
         self.corpus = corpus
 
-        if (self.corpus != False):
+        if self.corpus != False:
             raw_corpus = loadtxt(corpus, delimiter=',', dtype=str)
 
             # create dictionary that maps word labels to numbers and object labels to numbers
@@ -60,7 +60,7 @@ class Corpus:
                  world=World(),
                  n_per_sent=2,
                  n_sents=12,
-                 corpus = False):
+                 corpus=False):
 
         self.sents = list()
         self.world = world
@@ -69,7 +69,7 @@ class Corpus:
         self.corpus = corpus
     
         # convert corpus from labels to numbers
-        if (self.corpus != False):
+        if self.corpus != False:
             raw_corpus = loadtxt(self.corpus, delimiter=',', dtype=str)
             self.sents = list()
             
@@ -157,7 +157,7 @@ class Params:
                  alpha_r_hp=1,
                  alpha_nr_hp=2,
                  intent_hp_a=1,
-                 intent_hp_b=1,
+                 intent_hp_b=100,
                  n_hypermoves=5):
 
         # these are integers
@@ -179,7 +179,7 @@ class Params:
     # for debugging
     def show(self):
         for v in vars(self):
-            print str(v) + ": " + str(round(getattr(self, v), 2))
+            print "%s: %2.4f" % (v, getattr(self, v))
 
     #########
     ## propose_hyperparams
@@ -190,8 +190,8 @@ class Params:
 
         self.alpha_nr = alter_0inf_var(nps.alpha_nr)
         self.alpha_r = alter_0inf_var(nps.alpha_r)
-        # self.empty_intent = alter_01_var(nps.empty_intent)
-        # self.no_ref_word = alter_01_var(nps.no_ref_word)
+        self.empty_intent = alter_01_var(nps.empty_intent)
+        self.no_ref_word = alter_01_var(nps.no_ref_word)
 
         return nps
 

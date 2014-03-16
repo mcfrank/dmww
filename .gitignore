@@ -1,3 +1,9 @@
+# tex stuff
+*.aux
+*.log
+*.synctex.gz
+
+# python
 *.py[cod]
 
 # C extensions
