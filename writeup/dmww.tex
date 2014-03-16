@@ -35,6 +35,19 @@
 \section{Model}
 
 \subsection{Model Specification}
+\begin{figure}[tr]
+\begin{center}
+\includegraphics[width=1.5in]{figures/gen_mod.pdf}
+\caption{\label{fig:genmod} Caption.}
+\end{center}
+\end{figure}
+
+\begin{figure}[tr]
+\begin{center}
+\includegraphics[width=4.5in]{figures/setup.pdf}
+\caption{\label{fig:setup} Caption. From Frank (in press). }
+\end{center}
+\end{figure}
 
 \begin{equation}
 P(L, I| W, O) \propto P(W, O | L, I) P(L, I)).
@@ -46,18 +59,26 @@ P(L, I| W, O) \propto P(W, O | L, I) P(L, I)).
 P(L, I| W, O) \propto P(W | I, L) P(I | O) P(L).
 \end{equation}
 
-In this model, the lexicon $L$ consists of two separate parts. The referential lexicon $L_R$ is a set of Dirichlet-Multinomial distributions
+In this model, the lexicon $L$ consists of two separate parts. The referential lexicon $L_R$ is a set of integrated Dirichlet-Multinomial distributions, one for each object in the world. This distribution represents the posterior probability of a particular word, relative to that object. 
 
 \begin{equation}
-P(L) =
+P(L) = \prod{o \in W}{P(L_o)} + P(L_{NR}).
 \end{equation}
 
+ 
+
 \begin{equation}
-P(W | I, L) =
+P(W | I, L) = \gamma  
 \end{equation}
 
 
 \subsection{Inference}
+\begin{figure}[tr]
+\begin{center}
+\includegraphics[width=6.5in]{figures/inference_diagram.pdf}
+\caption{\label{fig:inference_diagram} Caption.}
+\end{center}
+\end{figure}
 
 \subsubsection{Batch inference using a gibbs sampler}
 
