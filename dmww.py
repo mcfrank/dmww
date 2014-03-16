@@ -87,7 +87,7 @@ l = GibbsLexicon(c, p,
                  hyper_inf=True)
 
 l.learn_lex(c,p)
-# lexplot(l,w)
+lexplot(l,w)
 # l.params.show()
 l.show()
 l.params.show()
