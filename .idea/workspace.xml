@@ -2,10 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="a395a809-d813-4840-b56f-879e83b0040c" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/corpora/corpus_toy.csv" afterPath="$PROJECT_DIR$/corpora/corpus_toy.csv" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.ipynb_checkpoints/dmww basics-checkpoint.ipynb" afterPath="$PROJECT_DIR$/.ipynb_checkpoints/dmww basics-checkpoint.ipynb" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dmww basics.ipynb" afterPath="$PROJECT_DIR$/dmww basics.ipynb" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dmww.py" afterPath="$PROJECT_DIR$/dmww.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/plotting_helper.py" afterPath="$PROJECT_DIR$/plotting_helper.py" />
     </list>
     <ignored path="dmww.iws" />
@@ -52,7 +48,7 @@
       <file leaf-file-name="plotting_helper.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/plotting_helper.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="42" column="43" selection-start="1301" selection-end="1301" vertical-scroll-proportion="1.143187" vertical-offset="135" max-vertical-offset="1260">
+            <state line="19" column="8" selection-start="554" selection-end="554" vertical-scroll-proportion="0.34642032" vertical-offset="135" max-vertical-offset="1275">
               <folding>
                 <element signature="e#15#46#0" expanded="true" />
               </folding>
@@ -63,7 +59,7 @@
       <file leaf-file-name="dmww basics.ipynb" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/dmww basics.ipynb">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="18" column="0" selection-start="245" selection-end="245" vertical-scroll-proportion="0.0" vertical-offset="585" max-vertical-offset="8340">
+            <state line="27" column="0" selection-start="483" selection-end="483" vertical-scroll-proportion="0.0" vertical-offset="720" max-vertical-offset="8400">
               <folding />
             </state>
           </provider>
@@ -470,7 +466,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/dmww basics.ipynb">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="18" column="0" selection-start="245" selection-end="245" vertical-scroll-proportion="0.0" vertical-offset="585" max-vertical-offset="8340">
+        <state line="27" column="0" selection-start="483" selection-end="483" vertical-scroll-proportion="0.0" vertical-offset="720" max-vertical-offset="8400">
           <folding />
         </state>
       </provider>
@@ -493,7 +489,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/plotting_helper.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="42" column="43" selection-start="1301" selection-end="1301" vertical-scroll-proportion="1.143187" vertical-offset="135" max-vertical-offset="1260">
+        <state line="19" column="8" selection-start="554" selection-end="554" vertical-scroll-proportion="0.34642032" vertical-offset="135" max-vertical-offset="1275">
           <folding>
             <element signature="e#15#46#0" expanded="true" />
           </folding>

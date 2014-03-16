@@ -17,6 +17,7 @@ def lexplot(l, w, fontsize = 30, colormap = "Reds", certainwords = 1):
     else:
         l.ref_plot =  l.ref
         hiwords =  range(0, w.n_words)
+        
 
     # set up plot space
     fig = plt.figure(figsize=(.4 * np.shape(hiwords)[0], .9 * w.n_objs))
