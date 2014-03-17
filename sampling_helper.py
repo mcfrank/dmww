@@ -1,6 +1,9 @@
 from numpy import *
 from random import *
 from scipy.special import gammaln
+from scipy import stats
+
+
 
 
 # function [i j s] = choose_class(scores)
@@ -131,6 +134,38 @@ def update_dm_plus(old_score, c, a, i):
     n = sum(c)
     new_score = old_score - log(n + a - 1) + log(c[i] + a / k - 1)
     return new_score
+
+
+def get_f(lex, gs_corpus):
+    gs = squeeze(asarray(gs_corpus.sents))
+    gs_num_mappings = shape(gs)[0]
+
+    links = nonzero(lex)
+    obj_is =  links[0]
+    word_is = links[1]
+    lex_num_mappings = size(obj_is)
+
+    # compute precision, what portion of the target lex is composed of gold pairings
+    p_count = 0
+    for pair in range(lex_num_mappings):
+        this_obj = obj_is[pair]
+        this_word = word_is[pair]
+
+        #loop over gold standard
+        if size(where((gs[:,0] == this_obj) & (gs[:,1] == this_word))) > 0:
+            p_count = p_count + 1
+
+    if (lex_num_mappings == 0): #special case
+      precision = 0
+    else:
+      precision = float(p_count) / float(lex_num_mappings)
+
+    # compute recall, how many of the total gold pairings are in the target lex
+    recall = float(p_count) / float(gs_num_mappings)
+
+    # now F is just the harmonic mean
+    f =  stats.hmean([recall, precision])
+    return f
 
 
 ########################################################################

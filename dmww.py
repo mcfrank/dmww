@@ -73,6 +73,9 @@ l.params.show()
 # # l.params.show()
 # l.show()
 # l.params.show()
+<<<<<<< HEAD
+
+=======
 # l.show_top_match(c,w)
 #
 # pr.disable()
@@ -81,3 +84,4 @@ l.params.show()
 # ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
 # ps.print_stats()
 # print s.getvalue()
+>>>>>>> 8bae10c78ec2d6b685ad527a6e515d5c617e5a3c
