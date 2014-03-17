@@ -52,39 +52,48 @@
 By Bayes' rule:
 
 \begin{equation}
-P( I| C) \propto P(C | I) P(I).
+P( I, L | C) \propto P(C | I, L ) P(I, L).
 \end{equation}
 
+
+% \begin{equation}
+% P( I| W, O) \propto P(W | I, O) P(I).
+% \end{equation}
 
 \begin{equation}
-P( I| W, O) \propto P(W | I, O) P(I).
+P( I, L | W, O) \propto P(W, O | I, L) P(I, L).
 \end{equation}
+
 
 \noindent But the objects $O$ are observed in the context. In addition, for simplicity, we assume that there is a uniform prior over possible intentions (though we return to this issue in the Discussion). By the generative model in Figure \ref{fig:genmod}, the remaining expression can be factored as follows:
 
 \begin{equation}
-P( I| W, O, L) \propto P(W | I, L) P(I | O) P(L).
+P( I, L | W, O) \propto P(W | I, L) P(I | O) P(I) P(L).
 \end{equation}
 
 But now we integrate over all possible L:
 
 \begin{equation}
-P( I| W, O, L) \propto \int_L{P(W | I, L) P(I | O) P(L)}
+P( I| W, O) \propto \int_L{P(W | I, L) P(I | O) P(I)  P(L) }
 \end{equation}
 
 
 In this model, the lexicon $L$ consists of two separate parts. The referential lexicon $L_R$ is a set of integrated Dirichlet-Multinomial distributions, one for each object in the world. This distribution represents the posterior probability of a particular word, relative to that object. 
 
 \begin{equation}
-P(L) = \prod{o \in W}{P(L_o)} + P(L_{NR}).
+P(L) = \prod_{o \in W}{P(L_{R_o})} + P(L_{NR}).
 \end{equation}
 
  
 
-\begin{equation}
-P(W | I, L) = \gamma  
-\end{equation}
+% \begin{equation}
+% P(W | I, L) = \gamma  
+% \end{equation}
 
+% intention, referential slot, and word vector
+% for the referential word 
+
+$p(\arrow w | I, R, L_R, L_{NR}) = p(w|O_i) * prod_{s \in S - S_r} {P(W_s | L_{NR})}$
 
 \subsection{Inference}
 \begin{figure}[tr]
@@ -96,7 +105,18 @@ P(W | I, L) = \gamma
 
 \subsubsection{Batch inference using a gibbs sampler}
 
+\begin{equation}
+P_t(L|W_{1...t}, O_{1...t}) \propto P_{t-1}(L | ...) P(W_t, I_t, R_t | L)
+\end{equation}
+
+% prob of a particular sample under Dir-M is the same thing as the conjugate 
+% so you just get the conjugate update for each of the assignments 
+
 \subsubsection{Incremental inference using a particle filter}
+
+\begin{equation}
+P_t(L|W_{1...t}, O_{1...t}) \propto P_{t-1}(L | ...) P(I_t | W_t, O_t)
+\end{equation}
 
 \section{Simulations}
 

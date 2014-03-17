@@ -5,6 +5,9 @@ from scipy.stats import gamma, beta
 import sys
 from corpus_helper import *
 
+# todo:
+# - consider removing word failure process
+
 ################################################################
 # The model
 ################################################################
@@ -22,7 +25,7 @@ class World:
         self.n_objs = n_objs
         self.corpus = corpus
 
-        if self.corpus != False:
+        if self.corpus:
             raw_corpus = loadtxt(corpus, delimiter=',', dtype=str)
 
             # create dictionary that maps word labels to numbers and object labels to numbers
@@ -46,7 +49,6 @@ class World:
             for i in range(0,size(u_words)):
                 self.words_dict.append([u_words[i], i])
 
-            
     def show(self):
         print "n_objs = " + str(self.n_objs)
         print "n_words = " + str(self.n_words)
