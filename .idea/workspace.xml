@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="a395a809-d813-4840-b56f-879e83b0040c" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.ipynb_checkpoints/dmww basics-checkpoint.ipynb" afterPath="$PROJECT_DIR$/.ipynb_checkpoints/dmww basics-checkpoint.ipynb" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dmww basics.ipynb" afterPath="$PROJECT_DIR$/dmww basics.ipynb" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/sampling_helper.py" afterPath="$PROJECT_DIR$/sampling_helper.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-    </list>
+    <list default="true" id="a395a809-d813-4840-b56f-879e83b0040c" name="Default" comment="" />
     <ignored path="dmww.iws" />
     <ignored path=".idea/workspace.xml" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -42,7 +37,7 @@
       <file leaf-file-name="sampling_helper.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/sampling_helper.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="158" column="19" selection-start="3841" selection-end="3841" vertical-scroll-proportion="0.67391306" vertical-offset="1967" max-vertical-offset="2820">
+            <state line="137" column="0" selection-start="3208" selection-end="4139" vertical-scroll-proportion="0.14715719" vertical-offset="1967" max-vertical-offset="2820">
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -509,7 +504,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/sampling_helper.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="158" column="19" selection-start="3841" selection-end="3841" vertical-scroll-proportion="0.67391306" vertical-offset="1967" max-vertical-offset="2820">
+        <state line="137" column="0" selection-start="3208" selection-end="4139" vertical-scroll-proportion="0.14715719" vertical-offset="1967" max-vertical-offset="2820">
           <folding>
             <element signature="e#0#19#0" expanded="true" />
           </folding>
