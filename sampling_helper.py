@@ -171,7 +171,6 @@ def get_f(lex, gs_corpus):
 ########################################################################
 ## MISC
 
-
 def nans(desired_shape, dtype=float):
     a = empty(desired_shape, dtype)
     a.fill(nan)

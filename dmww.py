@@ -9,24 +9,28 @@ from plotting_helper import *
 
 seed(1)
 
-
-w = World(n_words=8,
-           n_objs=8)
+# w = World(n_words=8,
+#            n_objs=8)
+w = World(n_words=2,
+           n_objs=2)
 w.show()
 
+# c = Corpus(w,
+#            n_per_sent=3,
+#            n_sents=40)
 c = Corpus(w,
-           n_per_sent=3,
-           n_sents=100)
+           n_per_sent=1,
+           n_sents=4)
 c.sample_sents()
 c.show()
 
-print "*** coocurrence test ***"
-l = CoocLexicon(w)
-l.learn_lex(c)
-l.show()
+# print "*** coocurrence test ***"
+# l = CoocLexicon(w)
+# l.learn_lex(c)
+# l.show()
 
 print "*** gibbs test ***"
-p = Params(n_samps=100,
+p = Params(n_samps=2,
            alpha_r=.1,
            alpha_nr=10,
            empty_intent=.0001,
@@ -36,9 +40,10 @@ p.show()
 
 
 l = GibbsLexicon(c,p,
-                 verbose=0,
-                 hyper_inf=True)
+                 verbose=3,
+                 hyper_inf=False)
 l.learn_lex(c,p)
+print "\n"
 l.show()
 l.params.show()
 
@@ -73,9 +78,6 @@ l.params.show()
 # # l.params.show()
 # l.show()
 # l.params.show()
-<<<<<<< HEAD
-
-=======
 # l.show_top_match(c,w)
 #
 # pr.disable()
@@ -84,4 +86,3 @@ l.params.show()
 # ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
 # ps.print_stats()
 # print s.getvalue()
->>>>>>> 8bae10c78ec2d6b685ad527a6e515d5c617e5a3c
