@@ -1,3 +1,6 @@
+from numpy import *
+from scipy import stats
+
 def find(l, elem):
     for row, i in enumerate(l):
         try:
@@ -38,5 +41,5 @@ def get_f(lex, gs_corpus):
 
     # now F is just the harmonic mean
     f =  stats.hmean([recall, precision])
-    return f
+    return (precision, recall, f)
 
