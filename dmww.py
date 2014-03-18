@@ -1,5 +1,3 @@
-from numpy import *
-from random import *
 from dmww_classes import *
 from plotting_helper import *
 

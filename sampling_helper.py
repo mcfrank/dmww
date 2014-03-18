@@ -3,42 +3,6 @@ from random import *
 from scipy.special import gammaln
 from scipy import stats
 
-
-
-
-# function [i j s] = choose_class(scores)
-# new_scores = scores - max(max(scores)); % add constant to make calculation of ratios possible
-# ps = exp(new_scores); % calculate relative probabilities
-# ps = ps / sum(sum(ps)); % normalize to 1
-# cumPs = reshape(cumsum(reshape(ps,1,numel(ps))),size(ps));
-# [i j] = find(rand<cumPs,1,'first');
-# s = scores(i,j);
-
-
-
-
-
-# function [i j s] = chooseClassTemp(scores,temp)
-# new_scores = scores - max(max(scores)); % add constant to make calculation of ratios possible
-# ps = exp(new_scores); % calculate relative probabilities
-# ps = ps .^ (1/temp);
-# ps = ps / sum(sum(ps)); % normalize to 1
-# cumPs = reshape(cumsum(reshape(ps,1,numel(ps))),size(ps));
-# [i j] = find(rand<cumPs,1,'first');
-# s = scores(i,j);
-#
-#
-# def choose_class_temp(scores, temp):  # unfinished
-#     new_scores = scores - max(max(scores))
-#     ps = exp(new_scores)
-#     ps ^= 1 / temp
-#     ps /= sum(sum(ps))
-#     None
-
-
-
-
-
 #########
 ## for variables that can't go below zero
 

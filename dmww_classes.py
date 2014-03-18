@@ -1,11 +1,11 @@
-from numpy import *
-from random import *
+import numpy as np
 from sampling_helper import *
 from scipy.stats import gamma, beta
 import sys
 from corpus_helper import *
 import time
 import copy
+from random import *
 
 # todo:
 # - consider removing word failure process
@@ -86,14 +86,14 @@ class Corpus:
                 objs = list()
                 for i in range(size(objs_labs)):
                     objs.append(world.objs_dict[find(world.objs_dict, objs_labs[i])[0]][1])
-                sent.append(array(objs))
+                sent.append(np.array(objs))
 
                 #add words
                 word_labs = str.split(raw_corpus[s][1])
                 words = list()
                 for i in range(size(word_labs)):
                     words.append(world.words_dict[find(world.words_dict, word_labs[i])[0]][1])
-                sent.append(array(words))
+                sent.append(np.array(words))
 
                 self.sents.append(sent)
 
@@ -113,8 +113,8 @@ class Corpus:
 
         for s in range(self.n_sents):
             sent = list()
-            words = array(sample(range(self.world.n_words), self.n_per_sent))
-            objs = array(words)
+            words = np.array(sample(range(self.world.n_words), self.n_per_sent))
+            objs = np.array(words)
             sent.append(words)
             sent.append(objs)
 
@@ -281,8 +281,8 @@ class GibbsLexicon(Lexicon):
         self.nr_score = 0
 
         # build object and word indices for quick indexing
-        self.oi = map(lambda x: array(range(len(x[0]))), corpus.sents)
-        self.wi = map(lambda x: array(range(len(x[1]))), corpus.sents)
+        self.oi = map(lambda x: np.array(range(len(x[0]))), corpus.sents)
+        self.wi = map(lambda x: np.array(range(len(x[1]))), corpus.sents)
 
         # now update all the scores
         self.score_full_lex(corpus, params, init=True)
@@ -328,9 +328,9 @@ class GibbsLexicon(Lexicon):
 
         # self.posterior_lex = self.get_posterior_lex(lexs)
         #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
-        print "\n"
-        self.show()
-        self.params.show()
+        # print "\n"
+        # self.show()
+        # self.params.show()
         print "\n *** average sample time: %2.3f sec" % ((time.clock() - start_time) / params.n_samps)
 
     # #########
