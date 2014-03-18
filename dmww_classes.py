@@ -296,9 +296,9 @@ class GibbsLexicon(Lexicon):
                   corpus,
                   params):
 
-        win_score = nans(params.n_samps)
+        self.sample_scores = nans(params.n_samps)
+        lexs = nans([corpus.world.n_objs, corpus.world.n_words, params.n_samps])
         start_time = time.clock()
-        # lexs = self.init_candidates(corpus)
 
         for s in range(params.n_samps):
             self.tick(s)  # keep track of samples
@@ -308,29 +308,35 @@ class GibbsLexicon(Lexicon):
                     print "\n********* sent " + str(i) + " - " + str(corpus.sents[i]) + " :"
 
                 # the important steps: prepare the lexicon for trying stuff in this setup
-                scores = neg_infs((corpus.n_os[i] + 1, corpus.n_ws[i] + 1))  # +1 for null
+                scores = neg_infs((corpus.n_os[i] + 1, corpus.n_ws[i]))  # +1 for null
 
                 for j in range(corpus.n_os[i] + 1):  # +1 for null
-                    for k in range(corpus.n_ws[i] + 1):
-                        # condition to ensure non-ref intent gets non-ref word
-                        if not (j == corpus.n_os[i] and k < corpus.n_ws[i]):
-                            self.prep_lex(corpus, params, i)
-                            scores[j, k] = self.score_lex(corpus, params, i, j, k)
-                            self.interim_show()
+                    for k in range(corpus.n_ws[i]):
+                        self.prep_lex(corpus, params, i)
+                        scores[j, k] = self.score_lex(corpus, params, i, j, k)
+                        self.interim_show()
 
-                (j, k, win_score[s]) = self.choose_class(scores)
+                # now choose the class and reassign
+                (j, k, self.sample_scores[s]) = self.choose_class(scores)
                 self.score_lex(corpus, params, i, j, k)
+                lexs[:,:,s] = copy.deepcopy(self.ref)
                 self.interim_show()
 
             if self.hyper_inf:
-                params = self.hyper_param_inf(corpus, params, win_score[s])
+                params = self.hyper_param_inf(corpus, params, self.sample_scores[s])
                 self.params = params
 
+        # self.posterior_lex = self.get_posterior_lex(lexs)
         #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
         print "\n"
         self.show()
         self.params.show()
-        print "\naverage sample time: %2.3f sec" % ((time.clock() - start_time) / params.n_samps)
+        print "\n *** average sample time: %2.3f sec" % ((time.clock() - start_time) / params.n_samps)
+
+    # #########
+    # ## choose_class - does the selection step
+    # def get_posterior_lex(self, lexs):
+
 
     #########
     ## choose_class - does the selection step
@@ -388,11 +394,11 @@ class GibbsLexicon(Lexicon):
             self.ref_score[new_o] = update_dm_plus(self.ref_score[new_o], self.ref[new_o, :][0],
                                                    params.alpha_r, new_w)
 
-        # and non-ref lexicon
-        self.non_ref[new_w] -= 1
-        if new_w.size > 0:
+        # and non-ref lexicon, but only if there is a non-null object
+        if new_o.size > 0:
+            self.non_ref[new_w] -= 1
             self.nr_score = update_dm_minus(self.nr_score, self.non_ref,
-                                            params.alpha_nr, new_w)
+                                                params.alpha_nr, new_w)
 
         score = self.update_score()
 
@@ -421,7 +427,9 @@ class GibbsLexicon(Lexicon):
 
         # critical part: rescore and shift counts in ref lexicon
         self.ref[new_o, new_w] += 1
-        self.non_ref[new_w] -= 1
+
+        if new_o.size > 0: # if non-null intent
+            self.non_ref[new_w] -= 1
 
         # score lexicon
         for o in range(corpus.world.n_objs):
@@ -434,7 +442,7 @@ class GibbsLexicon(Lexicon):
 
 
     #########
-    ## scoreFullLex - rescore everything
+    ## score_full_lex - rescore everything
     ## - use this for setup in combo with initLex
     ## - important for hyperparameter inference
     def score_full_lex(self,
@@ -443,17 +451,15 @@ class GibbsLexicon(Lexicon):
                        init=False):
         # set up the intent caching
         for i in range(corpus.n_sents):
-            n_os = len(corpus.sents[i][0])
-            n_ws = len(corpus.sents[i][1])
 
             # cache word and object probabilities uniformly
             # 1 x o matrix with [uniform ... empty]
             # and 1 x w matrix again with [uniform ... empty]
+            n_os = len(corpus.sents[i][0])
             if n_os > 0:
                 unif_o = log((1 - params.empty_intent) / n_os)
             else:
                 unif_o = [None] # protects against zero objects
-
 
             self.intent_obj_probs[i] = [unif_o] * n_os + [log(params.empty_intent)]
 
@@ -462,7 +468,7 @@ class GibbsLexicon(Lexicon):
                 io = self.oi[i] == self.intent_obj[i]
                 rw = self.wi[i] == self.ref_word[i]
 
-                if io.any() and rw.any(): # again, protect against nulls
+                if io.any() and rw.any(): #  protect against nulls
                     self.ref[corpus.sents[i][0][io],corpus.sents[i][1][rw]] += 1
 
                 # includes all words that are not the referential word
