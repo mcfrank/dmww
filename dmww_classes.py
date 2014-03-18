@@ -9,6 +9,7 @@ import copy
 
 # todo:
 # - consider removing word failure process
+# - fix intent hyperparameter inference
 
 ################################################################
 # The model
@@ -132,7 +133,6 @@ class Params:
                  alpha_nr=.1,
                  alpha_r=.1,
                  empty_intent=.000001,
-                 no_ref_word=.000001,
                  alpha_r_hp=1,
                  alpha_nr_hp=2,
                  intent_hp_a=1,
@@ -147,7 +147,6 @@ class Params:
         self.alpha_nr = float(alpha_nr)
         self.alpha_r = float(alpha_r)
         self.empty_intent = float(empty_intent)
-        self.no_ref_word = float(no_ref_word)
 
         # hyper params
         self.alpha_r_hp = float(alpha_r_hp)
@@ -170,7 +169,6 @@ class Params:
         self.alpha_nr = alter_0inf_var(nps.alpha_nr)
         self.alpha_r = alter_0inf_var(nps.alpha_r)
         # self.empty_intent = alter_01_var(nps.empty_intent)
-        # self.no_ref_word = alter_01_var(nps.no_ref_word)
 
         return nps
 
@@ -383,7 +381,6 @@ class GibbsLexicon(Lexicon):
 
         # update the probabilities
         self.intent_obj_prob[i] = self.intent_obj_probs[i][j]
-        self.ref_word_prob[i] = self.ref_word_probs[i][k]
 
         # critical part: rescore and shift counts in ref lexicon
         if new_o.size > 0 and new_w.size > 0:
@@ -421,7 +418,6 @@ class GibbsLexicon(Lexicon):
 
         # update the probabilities
         self.intent_obj_prob[i] = self.intent_obj_probs[i][j]
-        self.ref_word_prob[i] = self.ref_word_probs[i][k]
 
         # critical part: rescore and shift counts in ref lexicon
         self.ref[new_o, new_w] += 1
@@ -458,13 +454,8 @@ class GibbsLexicon(Lexicon):
             else:
                 unif_o = [None] # protects against zero objects
 
-            if n_ws > 0:
-                unif_w = log((1 - params.no_ref_word) / n_ws)
-            else:
-                unif_w = [None] # protects against zero words
 
             self.intent_obj_probs[i] = [unif_o] * n_os + [log(params.empty_intent)]
-            self.ref_word_probs[i] = [unif_w] * n_ws + [log(params.no_ref_word)]
 
             if init:
                 # update lexicon dirichlets based on random init
@@ -479,7 +470,6 @@ class GibbsLexicon(Lexicon):
 
             # now set up the quick scoring probability caches
             self.intent_obj_prob[i] = self.intent_obj_probs[i][self.intent_obj[i]]
-            self.ref_word_prob[i] = self.ref_word_probs[i][self.ref_word[i]]
 
         # cache DM scores for lexicon
         for i in range(corpus.world.n_objs):
@@ -490,10 +480,9 @@ class GibbsLexicon(Lexicon):
 
         # score hyperparameters (via hyper-hyperparameters)
         empty_intent_score = beta.logpdf(params.empty_intent, params.intent_hp_a, params.intent_hp_b)
-        no_ref_word_score = beta.logpdf(params.no_ref_word, params.intent_hp_a, params.intent_hp_b)
         alpha_score = gamma.logpdf(params.alpha_r, params.alpha_r_hp) + gamma.logpdf(params.alpha_nr,
                                                                                      params.alpha_nr_hp)
-        self.param_score = empty_intent_score + no_ref_word_score + alpha_score
+        self.param_score = empty_intent_score + alpha_score
 
         # debugging stuff
         if self.verbose > 1:
@@ -508,7 +497,6 @@ class GibbsLexicon(Lexicon):
             print "    nref score: " + str(self.nr_score)
             print "params: " + str(self.param_score)
             print "    empty: " + str(empty_intent_score)
-            print "    no_ref: " + str(no_ref_word_score)
             print "    alpha: " + str(alpha_score)
 
         score = self.update_score()
@@ -518,8 +506,8 @@ class GibbsLexicon(Lexicon):
     ########
     ## scoring method
     def update_score(self):
-        score = sum(self.intent_obj_prob) + sum(self.ref_word_prob) + self.nr_score + sum(
-            self.ref_score) + self.param_score
+        score = sum(self.intent_obj_prob) + self.nr_score + \
+                sum(self.ref_score) + self.param_score
 
         return score
 
