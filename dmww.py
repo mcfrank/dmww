@@ -26,7 +26,7 @@ c.show()
 # w 8, 8, c 1, 40, with a hundred samples and no hyperinf is around .18s / sample
 # in the worst case
 print "*** gibbs test ***"
-p = Params(n_samps=10,
+p = Params(n_samps=100,
            alpha_r=.1,
            alpha_nr=10,
            empty_intent=.0001,
@@ -34,58 +34,53 @@ p = Params(n_samps=10,
            n_hypermoves=5)
 p.show()
 
-
-l = GibbsLexicon(c,p,
-                 verbose=0,
-                 hyper_inf=False)
-
-import cProfile, pstats, StringIO
-pr = cProfile.Profile()
-pr.enable()
-
-l.learn_lex(c,p)
-
-pr.disable()
-s = StringIO.StringIO()
-sortby = 'cumulative'
-ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-ps.print_stats()
-print s.getvalue()
-
-
-
-
-
-
-#### CORPUS SIMS  ####
+#
+# l = GibbsLexicon(c,p,
+#                  verbose=0,
+#                  hyper_inf=False)
+#
 # import cProfile, pstats, StringIO
 # pr = cProfile.Profile()
 # pr.enable()
 #
-# corpusfile = 'corpora/corpus.csv'
-# w = World(corpus=corpusfile)
-# w.show()
-#
-# c = Corpus(world=w, corpus=corpusfile)
-#
-# p = Params(n_samps=2,
-#            alpha_r=.1,
-#            alpha_nr=10,
-#            empty_intent=.0001,
-#            no_ref_word=.000001,
-#            n_hypermoves=10)
-#
-# l = GibbsLexicon(c, p,
-#                  verbose=0,
-#                  hyper_inf=True)
-#
 # l.learn_lex(c,p)
-# # lexplot(l,w)
-# # l.params.show()
-# l.show()
-# l.params.show()
-# l.show_top_match(c,w)
 #
+# pr.disable()
+# s = StringIO.StringIO()
+# sortby = 'cumulative'
+# ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+# ps.print_stats()
+# print s.getvalue()
+#
+#
+#
+#
+
+
+### CORPUS SIMS  ####
+corpusfile = 'corpora/corpus.csv'
+w = World(corpus=corpusfile)
+w.show()
+
+c = Corpus(world=w, corpus=corpusfile)
+
+p = Params(n_samps=10,
+           alpha_r=.1,
+           alpha_nr=10,
+           empty_intent=.0001,
+           no_ref_word=.000001,
+           n_hypermoves=10)
+
+l = GibbsLexicon(c, p,
+                 verbose=0,
+                 hyper_inf=True)
+
+l.learn_lex(c,p)
+
+l.show()
+l.params.show()
+l.show_top_match(c,w)
+
 # pr.disable()
 # s = StringIO.StringIO()
 # sortby = 'cumulative'
