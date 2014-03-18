@@ -15,19 +15,7 @@ from scipy import stats
 # s = scores(i,j);
 
 
-def choose_class(scores):
-    new_scores = scores - scores.max()
-    ps = exp(new_scores)
-    ps = ps / sum(sum(ps))
-    cum_ps = reshape(cumsum(ps), shape(ps))
 
-    r = random()
-    i = where(cum_ps > r)[0][0]
-    j = where(cum_ps > r)[1][0]
-    s = scores[i, j]
-
-    # return tuple of indices for greater than 
-    return i, j, s
 
 
 # function [i j s] = chooseClassTemp(scores,temp)

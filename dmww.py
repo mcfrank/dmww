@@ -9,19 +9,13 @@ from plotting_helper import *
 
 seed(1)
 
-# w = World(n_words=8,
-#            n_objs=8)
-w = World(n_words=2,
-           n_objs=2)
+w = World(n_words=8,
+           n_objs=8)
 w.show()
 
-# c = Corpus(w,
-#            n_per_sent=3,
-#            n_sents=40)
 c = Corpus(w,
-           n_per_sent=1,
-           n_sents=4)
-c.sample_sents()
+           n_per_sent=2,
+           n_sents=40)
 c.show()
 
 # print "*** coocurrence test ***"
@@ -29,8 +23,10 @@ c.show()
 # l.learn_lex(c)
 # l.show()
 
+# w 8, 8, c 1, 40, with a hundred samples and no hyperinf is around .18s / sample
+# in the worst case
 print "*** gibbs test ***"
-p = Params(n_samps=2,
+p = Params(n_samps=10,
            alpha_r=.1,
            alpha_nr=10,
            empty_intent=.0001,
@@ -40,12 +36,22 @@ p.show()
 
 
 l = GibbsLexicon(c,p,
-                 verbose=3,
+                 verbose=0,
                  hyper_inf=False)
+
+import cProfile, pstats, StringIO
+pr = cProfile.Profile()
+pr.enable()
+
 l.learn_lex(c,p)
-print "\n"
-l.show()
-l.params.show()
+
+pr.disable()
+s = StringIO.StringIO()
+sortby = 'cumulative'
+ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+ps.print_stats()
+print s.getvalue()
+
 
 
 
