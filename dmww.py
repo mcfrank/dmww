@@ -43,6 +43,7 @@ pr = cProfile.Profile()
 pr.enable()
 
 l.learn_lex(c,p)
+# get_f(l.ref,c)
 
 pr.disable()
 s = StringIO.StringIO()
@@ -51,8 +52,9 @@ ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
 ps.print_stats()
 print s.getvalue()
 
-lexplot(l,w)
-
+# lexplot(l,w)
+# pylab.ion()
+# pylab.show(block=True)
 
 
 
