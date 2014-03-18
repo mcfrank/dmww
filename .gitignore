@@ -1,3 +1,7 @@
+# pycharm stuff
+.idea
+.xml
+
 # tex stuff
 *.aux
 *.log
