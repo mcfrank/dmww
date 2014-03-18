@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="a395a809-d813-4840-b56f-879e83b0040c" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/corpora/corpus.csv" afterPath="$PROJECT_DIR$/corpora/corpus.csv" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dmww.py" afterPath="$PROJECT_DIR$/dmww.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dmww_classes.py" afterPath="$PROJECT_DIR$/dmww_classes.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-    </list>
+    <list default="true" id="a395a809-d813-4840-b56f-879e83b0040c" name="Default" comment="" />
     <ignored path="dmww.iws" />
     <ignored path=".idea/workspace.xml" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -31,7 +26,7 @@
       <file leaf-file-name="dmww.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/dmww.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="70" column="28" selection-start="1383" selection-end="1383" vertical-scroll-proportion="0.6181818" vertical-offset="540" max-vertical-offset="1425">
+            <state line="81" column="21" selection-start="1565" selection-end="1565" vertical-scroll-proportion="0.8181818" vertical-offset="540" max-vertical-offset="1425">
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -335,7 +330,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1440" height="900" extended-state="0" />
-    <editor active="false" />
+    <editor active="true" />
     <layout>
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
@@ -345,7 +340,7 @@
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.6025791" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.08792497" sideWeight="0.50069445" order="8" side_tool="true" content_ui="tabs" />
-      <window_info id="Run" active="true" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.5388889" sideWeight="0.49930555" order="3" side_tool="true" content_ui="tabs" x="625" y="219" width="674" height="488" />
+      <window_info id="Run" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.5388889" sideWeight="0.49930555" order="3" side_tool="true" content_ui="tabs" x="625" y="219" width="674" height="488" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -537,7 +532,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/dmww.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="70" column="28" selection-start="1383" selection-end="1383" vertical-scroll-proportion="0.6181818" vertical-offset="540" max-vertical-offset="1425">
+        <state line="81" column="21" selection-start="1565" selection-end="1565" vertical-scroll-proportion="0.8181818" vertical-offset="540" max-vertical-offset="1425">
           <folding>
             <element signature="e#0#19#0" expanded="true" />
           </folding>
