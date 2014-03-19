@@ -204,15 +204,6 @@ class Lexicon:
         self.ref_word = zeros(corpus.n_sents, dtype=int)
         self.param_score = 0
 
-        # choose random word and object to be talked about in each sentence
-        # or consider the null object (the +1)
-        for i in range(corpus.n_sents):
-            n_os = len(corpus.sents[i][0])
-            n_ws = len(corpus.sents[i][1])
-
-            self.intent_obj[i] = sample(range(n_os + 1), 1)[0] # +1 for null
-            self.ref_word[i] = sample(range(n_ws), 1)[0]
-
         # initialize cached probabilities
         self.intent_obj_probs = [None] * corpus.n_sents  # list
         self.intent_obj_prob = zeros(corpus.n_sents)  # numpy array
@@ -222,9 +213,6 @@ class Lexicon:
         # build object and word indices for quick indexing
         self.oi = map(lambda x: np.array(range(len(x[0]))), corpus.sents)
         self.wi = map(lambda x: np.array(range(len(x[1]))), corpus.sents)
-
-        # now update all the scores
-        self.score_full_lex(corpus, params, init=True)
 
     #########
     ## generic show method
@@ -265,7 +253,10 @@ class Lexicon:
                   corpus,
                   params):
 
+        # initialize for gibbs
+        self.init_gibbs(corpus, params)
         self.sample_scores = nans(params.n_samps)
+
         lexs = nans([corpus.world.n_objs, corpus.world.n_words, params.n_samps])
         start_time = time.clock()
 
@@ -299,48 +290,74 @@ class Lexicon:
         # self.params.show()
         print "\n *** average sample time: %2.3f sec" % ((time.clock() - start_time) / params.n_samps)
 
-    # #########
-    # ## learn_lex_pf implements a particle filter
-    # ## similar to the gibbs
-    # def learn_lex_pf(self,
-    #               corpus,
-    #               params):
-    #
-    #     self.sample_scores = nans(params.n_samps)
-    #     lexs = nans([corpus.world.n_objs, corpus.world.n_words, params.n_samps])
-    #     start_time = time.clock()
-    #
-    #     for s in range(params.n_samps):
-    #         self.tick(s)  # keep track of samples
-    #
-    #         for i in range(corpus.n_sents):
-    #             if self.verbose > 1:
-    #                 print "\n********* sent " + str(i) + " - " + str(corpus.sents[i]) + " :"
-    #
-    #             # the important steps: prepare the lexicon for trying stuff in this setup
-    #             scores = neg_infs((corpus.n_os[i] + 1, corpus.n_ws[i]))  # +1 for null
-    #
-    #             for j in range(corpus.n_os[i] + 1):  # +1 for null
-    #                 for k in range(corpus.n_ws[i]):
-    #                     scores[j, k] = self.score_lex(corpus, params, i, j, k)
-    #                     self.interim_show()
-    #
-    #             # now choose the class and reassign
-    #             (j, k, self.sample_scores[s]) = self.choose_class(scores)
-    #             self.score_lex(corpus, params, i, j, k)
-    #             lexs[:,:,s] = copy.deepcopy(self.ref)
-    #             self.interim_show()
-    #
-    #         if self.hyper_inf:
-    #             params = self.hyper_param_inf(corpus, params, self.sample_scores[s])
-    #             self.params = params
-    #
-    #     # self.posterior_lex = self.get_posterior_lex(lexs)
-    #     #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
-    #     # print "\n"
-    #     # self.show()
-    #     # self.params.show()
-    #     print "\n *** average sample time: %2.3f sec" % ((time.clock() - start_time) / params.n_samps)
+    #########
+    ## init_gibbs - randomly assigns and scores
+    def init_gibbs(self, corpus, params):
+        # choose random word and object to be talked about in each sentence
+        # or consider the null object (the +1)
+        for i in range(corpus.n_sents):
+            n_os = len(corpus.sents[i][0])
+            n_ws = len(corpus.sents[i][1])
+
+            self.intent_obj[i] = sample(range(n_os + 1), 1)[0] # +1 for null
+            self.ref_word[i] = sample(range(n_ws), 1)[0]
+
+        # now update all the scores
+        self.score_full_lex(corpus, params, init=True)
+
+
+    #########
+    ## learn_lex_pf implements a particle filter
+    ## similar to the gibbs
+    def learn_lex_pf(self,
+                  corpus,
+                  params):
+
+        # lexs = nans([corpus.world.n_objs, corpus.world.n_words, params.n_samps])
+        # start_time = time.clock()
+        # self.tick(s)  # keep track of samples
+        self.init_pf(corpus, params)
+        self.sample_scores = nans(params.n_samps)
+
+        for i in range(corpus.n_sents):
+            if self.verbose > 1:
+                print "\n********* sent " + str(i) + " - " + str(corpus.sents[i]) + " :"
+
+            # for p in range(params.n_particles):
+
+
+            # the important steps: prepare the lexicon for trying stuff in this setup
+            scores = neg_infs((corpus.n_os[i] + 1, corpus.n_ws[i]))  # +1 for null
+
+            for j in range(corpus.n_os[i] + 1):  # +1 for null
+                for k in range(corpus.n_ws[i]):
+                    scores[j, k] = self.score_lex(corpus, params, i, j, k)
+
+            # now choose the class and reassign
+            (j, k, self.sample_scores[i]) = self.choose_class(scores)
+            self.score_lex(corpus, params, i, j, k)
+
+            # if self.hyper_inf:
+            #     params = self.hyper_param_inf(corpus, params, self.sample_scores[s])
+            #     self.params = params
+
+        # self.posterior_lex = self.get_posterior_lex(lexs)
+        #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
+        # print "\n"
+        # self.show()
+        # self.params.show()
+        # print "\n *** average sample time: %2.3f sec" % ((time.clock() - start_time) / params.n_samps)
+
+    #########
+    ## init_pf - randomly assigns and scores
+    def init_pf(self, corpus, params):
+
+        # initialize each object to have been null
+        self.intent_obj = map(lambda x: len(x[0]), corpus.sents)
+        self.ref_word = map(lambda x: len(x[1]), corpus.sents)
+
+        # update all the scores
+        self.score_full_lex(corpus, params, init=False)
 
 
     #########
