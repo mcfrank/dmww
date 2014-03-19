@@ -7,16 +7,16 @@ from plotting_helper import *
 
 seed(1)
 
-w = World(n_words=2,
-           n_objs=2)
+w = World(n_words=8,
+           n_objs=8)
 w.show()
 
 c = Corpus(w,
-           n_per_sent=1,
-           n_sents=4)
+           n_per_sent=2,
+           n_sents=10)
 c.show()
 
-p = Params(n_samps=10,
+p = Params(n_samps=100,
            n_particles=1,
            alpha_r=.1,
            alpha_nr=10,
@@ -24,13 +24,25 @@ p = Params(n_samps=10,
            n_hypermoves=5)
 p.show()
 
+# print "\n\n****************************************** GIBBS SAMPLER ******"
+# seed(1)
+# l = Lexicon(c,p,
+#             verbose=0,
+#             hyper_inf=False)
+#
+# l.learn_lex_gibbs(c,p)
+# l.show()
 
+print "\n\n****************************************** PARTICLE FILTER ******"
+seed(1)
 l = Lexicon(c,p,
-            verbose=2,
+            verbose=1,
             hyper_inf=False)
 
 l.learn_lex_pf(c,p)
 l.show()
+
+
 
 # import cProfile, pstats, StringIO
 # pr = cProfile.Profile()
