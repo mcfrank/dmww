@@ -24,7 +24,7 @@ c.show()
 # w 8, 8, c 1, 40, with a hundred samples and no hyperinf is around .18s / sample
 # in the worst case
 print "*** gibbs test ***"
-p = Params(n_samps=100,
+p = Params(n_samps=1,
            alpha_r=.1,
            alpha_nr=10,
            empty_intent=.0001,
@@ -61,7 +61,7 @@ w.show()
 
 c = Corpus(world=w, corpus=corpusfile)
 
-p = Params(n_samps=100,
+p = Params(n_samps=10,
            alpha_r=.1,
            alpha_nr=10,
            empty_intent=.0001,
@@ -77,8 +77,9 @@ l.show()
 l.params.show()
 l.show_top_match(c,w)
 
-lexplot(l,w)
-pylab.show(block=True)
+lexplot(l,w, certainwords = True)
+pylab.show(block=True, figsize = [5,5])
+
 
 
 # pr.disable()

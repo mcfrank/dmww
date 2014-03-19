@@ -326,7 +326,7 @@ class GibbsLexicon(Lexicon):
                 params = self.hyper_param_inf(corpus, params, self.sample_scores[s])
                 self.params = params
 
-        # self.posterior_lex = self.get_posterior_lex(lexs)
+        #self.posterior_lex = self.get_posterior_lex(lexs)
         #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
         # print "\n"
         # self.show()
