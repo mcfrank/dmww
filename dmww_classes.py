@@ -205,24 +205,17 @@ class Lexicon:
         self.param_score = 0
 
         # choose random word and object to be talked about in each sentence
-        # or consider the null topic/object (the +1)
+        # or consider the null object (the +1)
         for i in range(corpus.n_sents):
             n_os = len(corpus.sents[i][0])
             n_ws = len(corpus.sents[i][1])
 
-            self.intent_obj[i] = sample(range(n_os + 1), 1)[0]
-
-            # if it's the null intention, it needs to be the null word
-            if self.intent_obj[i] == n_os:
-                self.ref_word[i] = n_ws  # null
-            else:
-                self.ref_word[i] = sample(range(n_ws + 1), 1)[0]
+            self.intent_obj[i] = sample(range(n_os + 1), 1)[0] # +1 for null
+            self.ref_word[i] = sample(range(n_ws), 1)[0]
 
         # initialize cached probabilities
         self.intent_obj_probs = [None] * corpus.n_sents  # list
-        self.ref_word_probs = [None] * corpus.n_sents  # list
         self.intent_obj_prob = zeros(corpus.n_sents)  # numpy array
-        self.ref_word_prob = zeros(corpus.n_sents)  # numpy array
         self.ref_score = zeros(corpus.world.n_objs)
         self.nr_score = 0
 
@@ -240,22 +233,6 @@ class Lexicon:
 
         if hasattr(self, 'non_ref'):
             print "nr: " + str(self.non_ref)
-
-    def interim_show(self):
-        if self.verbose > 0:
-            print self.ref
-
-            if hasattr(self, 'non_ref'):
-                print "nr: " + str(self.non_ref)
-
-        if self.verbose > 1:
-            print "interim scores: %2.1f, %2.1f, %2.1f, " \
-                  "%2.1f, %2.1f, total: %2.1f" % (sum(self.ref_score),
-                                                  self.nr_score,
-                                                  sum(self.intent_obj_prob),
-                                                  sum(self.ref_word_prob),
-                                                  self.param_score,
-                                                  self.update_score())
 
     #########
     ## show_top_match: show nice matching entry
@@ -304,19 +281,12 @@ class Lexicon:
 
                 for j in range(corpus.n_os[i] + 1):  # +1 for null
                     for k in range(corpus.n_ws[i]):
-                        self.prep_lex(corpus, params, i)
                         scores[j, k] = self.score_lex(corpus, params, i, j, k)
-                        self.interim_show()
-                        print sum(self.non_ref) + sum(self.ref)
-
 
                 # now choose the class and reassign
                 (j, k, self.sample_scores[s]) = self.choose_class(scores)
-                self.prep_lex(corpus, params, i)
                 self.score_lex(corpus, params, i, j, k)
                 lexs[:,:,s] = copy.deepcopy(self.ref)
-                self.interim_show()
-                print sum(self.non_ref) + sum(self.ref)
 
             if self.hyper_inf:
                 params = self.hyper_param_inf(corpus, params, self.sample_scores[s])
@@ -329,48 +299,48 @@ class Lexicon:
         # self.params.show()
         print "\n *** average sample time: %2.3f sec" % ((time.clock() - start_time) / params.n_samps)
 
-    #########
-    ## learn_lex_pf implements a particle filter
-    ## similar to the gibbs
-    def learn_lex_pf(self,
-                  corpus,
-                  params):
-
-        self.sample_scores = nans(params.n_samps)
-        lexs = nans([corpus.world.n_objs, corpus.world.n_words, params.n_samps])
-        start_time = time.clock()
-
-        for s in range(params.n_samps):
-            self.tick(s)  # keep track of samples
-
-            for i in range(corpus.n_sents):
-                if self.verbose > 1:
-                    print "\n********* sent " + str(i) + " - " + str(corpus.sents[i]) + " :"
-
-                # the important steps: prepare the lexicon for trying stuff in this setup
-                scores = neg_infs((corpus.n_os[i] + 1, corpus.n_ws[i]))  # +1 for null
-
-                for j in range(corpus.n_os[i] + 1):  # +1 for null
-                    for k in range(corpus.n_ws[i]):
-                        scores[j, k] = self.score_lex(corpus, params, i, j, k)
-                        self.interim_show()
-
-                # now choose the class and reassign
-                (j, k, self.sample_scores[s]) = self.choose_class(scores)
-                self.score_lex(corpus, params, i, j, k)
-                lexs[:,:,s] = copy.deepcopy(self.ref)
-                self.interim_show()
-
-            if self.hyper_inf:
-                params = self.hyper_param_inf(corpus, params, self.sample_scores[s])
-                self.params = params
-
-        # self.posterior_lex = self.get_posterior_lex(lexs)
-        #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
-        # print "\n"
-        # self.show()
-        # self.params.show()
-        print "\n *** average sample time: %2.3f sec" % ((time.clock() - start_time) / params.n_samps)
+    # #########
+    # ## learn_lex_pf implements a particle filter
+    # ## similar to the gibbs
+    # def learn_lex_pf(self,
+    #               corpus,
+    #               params):
+    #
+    #     self.sample_scores = nans(params.n_samps)
+    #     lexs = nans([corpus.world.n_objs, corpus.world.n_words, params.n_samps])
+    #     start_time = time.clock()
+    #
+    #     for s in range(params.n_samps):
+    #         self.tick(s)  # keep track of samples
+    #
+    #         for i in range(corpus.n_sents):
+    #             if self.verbose > 1:
+    #                 print "\n********* sent " + str(i) + " - " + str(corpus.sents[i]) + " :"
+    #
+    #             # the important steps: prepare the lexicon for trying stuff in this setup
+    #             scores = neg_infs((corpus.n_os[i] + 1, corpus.n_ws[i]))  # +1 for null
+    #
+    #             for j in range(corpus.n_os[i] + 1):  # +1 for null
+    #                 for k in range(corpus.n_ws[i]):
+    #                     scores[j, k] = self.score_lex(corpus, params, i, j, k)
+    #                     self.interim_show()
+    #
+    #             # now choose the class and reassign
+    #             (j, k, self.sample_scores[s]) = self.choose_class(scores)
+    #             self.score_lex(corpus, params, i, j, k)
+    #             lexs[:,:,s] = copy.deepcopy(self.ref)
+    #             self.interim_show()
+    #
+    #         if self.hyper_inf:
+    #             params = self.hyper_param_inf(corpus, params, self.sample_scores[s])
+    #             self.params = params
+    #
+    #     # self.posterior_lex = self.get_posterior_lex(lexs)
+    #     #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
+    #     # print "\n"
+    #     # self.show()
+    #     # self.params.show()
+    #     print "\n *** average sample time: %2.3f sec" % ((time.clock() - start_time) / params.n_samps)
 
 
     #########
@@ -388,29 +358,29 @@ class Lexicon:
 
         # now subtract their counts from the referential lexicon,
         # but only if there was a referred object
+        # and add word back to the non-referential lexicon
         if old_o.size > 0:
             self.ref[old_o, old_w] -= 1
             self.ref_score[old_o] = update_dm_minus(self.ref_score[old_o],
                                                     self.ref[old_o, :][0],
-                                                    params.alpha_r,
-                                                    old_w)
+                                                    params.alpha_r, old_w)
+            self.non_ref[old_w] += 1
+            self.nr_score = update_dm_plus(self.nr_score, self.non_ref,
+                                           params.alpha_nr, old_w)
 
-        # and add word back to the non-referential lexicon
-        self.non_ref[old_w] += 1
-        self.nr_score = update_dm_plus(self.nr_score,
-                                       self.non_ref,
-                                       params.alpha_nr,
-                                       old_w)
 
-        # critical part: rescore and shift counts in ref lexicon
+        # critical part: re-score and shift counts in ref lexicon
         # and non-ref lexicon, but only if there is a non-null object
         if new_o.size > 0:
             self.ref[new_o, new_w] += 1
-            self.non_ref[new_w] -= 1
-            self.ref_score[new_o] = update_dm_plus(self.ref_score[new_o], self.ref[new_o, :][0],
+            self.ref_score[new_o] = update_dm_plus(self.ref_score[new_o],
+                                                   self.ref[new_o, :][0],
                                                    params.alpha_r, new_w)
+            self.non_ref[new_w] -= 1
             self.nr_score = update_dm_minus(self.nr_score, self.non_ref,
                                                 params.alpha_nr, new_w)
+
+
 
         # now do the reassignment and update score
         self.intent_obj[i] = j
@@ -419,44 +389,22 @@ class Lexicon:
         score = self.update_score()
 
         if self.verbose:
-            print "\n --- prep lex ---"
-            print "        old = " + str(old_o) + " " + str(old_w) + " "
-            print "\n -- score lex: %d, %d" % (j, k)
-            print "    new o: " + str(new_o) + " , new w: " + str(new_w)
+            print "\n--- score lex: %d, %d ---" % (j, k)
+            print "old o: " + str(old_o) + ", old w: " + str(old_w)
+            print "new o: " + str(new_o) + ", new w: " + str(new_w)
+
+            print self.ref
+            print " " + str(self.non_ref)
+            print "counts: %d" % (sum(self.non_ref) + sum(self.ref))
+            print "interim scores: %2.1f, %2.1f, %2.1f, " \
+                  "%2.1f,  total: %2.1f" % (sum(self.ref_score),
+                                                  self.nr_score,
+                                                  sum(self.intent_obj_prob),
+                                                  self.param_score,
+                                                  score)
 
         return score
 
-
-    #########
-    ## score_lex_simple
-    def score_lex_simple(self,
-                         corpus,
-                         params,
-                         i, j, k):
-        # reassign this j/k pair for this sentence
-        new_o = corpus.sents[i][0][self.oi[i] == j]
-        new_w = corpus.sents[i][1][self.wi[i] == k]
-
-        self.intent_obj[i] = j
-        self.ref_word[i] = k
-
-        # update the probabilities
-        self.intent_obj_prob[i] = self.intent_obj_probs[i][j]
-
-        # critical part: rescore and shift counts in ref lexicon
-        self.ref[new_o, new_w] += 1
-
-        if new_o.size > 0: # if non-null intent
-            self.non_ref[new_w] -= 1
-
-        # score lexicon
-        for o in range(corpus.world.n_objs):
-            self.ref_score[o] = score_dm(self.ref[o, :], params.alpha_r)
-        self.nr_score = score_dm(self.non_ref, params.alpha_nr)
-
-        score = self.update_score()
-
-        return score
 
 
     #########
@@ -486,11 +434,16 @@ class Lexicon:
                 io = self.oi[i] == self.intent_obj[i]
                 rw = self.wi[i] == self.ref_word[i]
 
-                if io.any() and rw.any(): #  protect against nulls
+                if io.any():  # protect against nulls
                     self.ref[corpus.sents[i][0][io],corpus.sents[i][1][rw]] += 1
 
                 # includes all words that are not the referential word
                 self.non_ref[corpus.sents[i][1][self.wi[i] != self.ref_word[i]]] += 1
+
+                # now add the referential words for null objects
+                if not io.any():
+                    self.non_ref[corpus.sents[i][1][self.wi[i] == self.ref_word[i]]] += 1
+
 
             # now set up the quick scoring probability caches
             self.intent_obj_prob[i] = self.intent_obj_probs[i][self.intent_obj[i]]
@@ -514,7 +467,6 @@ class Lexicon:
             print "    intent obj: " + str(self.intent_obj)
             print "    intent obj prob: " + str(self.intent_obj_prob.round(1))
             print "    ref word: " + str(self.ref_word)
-            print "    ref word prob: " + str(self.ref_word_prob.round(1))
             print "lex: " + str(self.ref)
             print "nr lex: " + str(self.non_ref)
             print "    ref score: " + str(self.ref_score)
@@ -604,3 +556,35 @@ class Lexicon:
                 print "\n"
             else:
                 sys.stdout.write(".")
+
+
+    # #########
+    # ## score_lex_simple
+    # def score_lex_simple(self,
+    #                      corpus,
+    #                      params,
+    #                      i, j, k):
+    #     # reassign this j/k pair for this sentence
+    #     new_o = corpus.sents[i][0][self.oi[i] == j]
+    #     new_w = corpus.sents[i][1][self.wi[i] == k]
+    #
+    #     self.intent_obj[i] = j
+    #     self.ref_word[i] = k
+    #
+    #     # update the probabilities
+    #     self.intent_obj_prob[i] = self.intent_obj_probs[i][j]
+    #
+    #     # critical part: rescore and shift counts in ref lexicon
+    #     self.ref[new_o, new_w] += 1
+    #
+    #     if new_o.size > 0: # if non-null intent
+    #         self.non_ref[new_w] -= 1
+    #
+    #     # score lexicon
+    #     for o in range(corpus.world.n_objs):
+    #         self.ref_score[o] = score_dm(self.ref[o, :], params.alpha_r)
+    #     self.nr_score = score_dm(self.non_ref, params.alpha_nr)
+    #
+    #     score = self.update_score()
+    #
+    #     return score

@@ -7,13 +7,13 @@ from plotting_helper import *
 
 seed(1)
 
-w = World(n_words=2,
-           n_objs=2)
+w = World(n_words=8,
+           n_objs=8)
 w.show()
 
 c = Corpus(w,
            n_per_sent=2,
-           n_sents=4)
+           n_sents=40)
 c.show()
 
 # print "*** coocurrence test ***"
@@ -23,20 +23,20 @@ c.show()
 
 # w 8, 8, c 1, 40, with a hundred samples and no hyperinf is around .18s / sample
 # in the worst case
-p = Params(n_samps=2,
-           alpha_r=.1,
-           alpha_nr=10,
-           empty_intent=.0001,
-           n_hypermoves=5)
-p.show()
-
-
-l = Lexicon(c,p,
-            verbose=2,
-            hyper_inf=False)
-
-l.learn_lex_gibbs(c,p)
-l.show()
+# p = Params(n_samps=10,
+#            alpha_r=.1,
+#            alpha_nr=10,
+#            empty_intent=.0001,
+#            n_hypermoves=5)
+# p.show()
+#
+#
+# l = Lexicon(c,p,
+#             verbose=0,
+#             hyper_inf=False)
+#
+# l.learn_lex_gibbs(c,p)
+# l.show()
 
 # import cProfile, pstats, StringIO
 # pr = cProfile.Profile()
@@ -57,30 +57,30 @@ l.show()
 
 
 ### CORPUS SIMS  ####
-# corpusfile = 'corpora/corpus.csv'
-# w = World(corpus=corpusfile)
-# w.show()
-#
-# c = Corpus(world=w, corpus=corpusfile)
-#
-# p = Params(n_samps=100,
-#            alpha_r=.1,
-#            alpha_nr=10,
-#            empty_intent=.0001,
-#            n_hypermoves=10)
-#
-# l = GibbsLexicon(c, p,
-#                  verbose=0,
-#                  hyper_inf=True)
-#
-# l.learn_lex(c,p)
-#
-# l.show()
-# l.params.show()
-# l.show_top_match(c,w)
-#
-# lexplot(l,w)
-# pylab.show(block=True)
+corpusfile = 'corpora/corpus.csv'
+w = World(corpus=corpusfile)
+w.show()
+
+c = Corpus(world=w, corpus=corpusfile)
+
+p = Params(n_samps=100,
+           alpha_r=.1,
+           alpha_nr=10,
+           empty_intent=.0001,
+           n_hypermoves=10)
+
+l = Lexicon(c, p,
+            verbose=0,
+            hyper_inf=True)
+
+l.learn_lex_gibbs(c,p)
+
+l.show()
+l.params.show()
+l.show_top_match(c,w)
+
+lexplot(l,w)
+pylab.show(block=True)
 
 
 # pr.disable()
