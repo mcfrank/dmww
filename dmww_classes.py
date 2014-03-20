@@ -6,6 +6,9 @@ from corpus_helper import *
 import time
 import copy
 from random import *
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+import pylab
 
 # todo:
 # x consider removing word failure process
@@ -261,6 +264,98 @@ class Lexicon:
         plt.ylabel('sample score')
         return ax
 
+    #########
+    ## plot_lex plots lexicon nicely
+    def plot_lex(self, world, colormap="Reds", certainwords=1):
+        # certainwords plots all only non-zero probabilities
+
+        # get data to plot
+        if certainwords:
+            hiwords = np.empty([0, 1], dtype=int)
+            for word in range(world.n_words):
+                if np.count_nonzero(self.ref[:, word]):
+                    hiwords = np.append(hiwords, word)
+            self.ref_plot = self.ref[:, hiwords]
+        else:
+            self.ref_plot = self.ref
+            hiwords = range(0, world.n_words)
+
+        if hasattr(self, 'non_ref'):
+            self.non_ref_plot = self.non_ref[:, hiwords]
+
+            # get labels for plot, and sort data alphabetically
+        if hasattr(world, 'words_dict'):
+
+            #sort words
+            wordlabs = [world.words_dict[hiwords[i]][0] for i in range(0, np.shape(hiwords)[0])]
+            w_order = np.argsort(wordlabs)
+            self.ref_plot = self.ref_plot[:, w_order]
+            if hasattr(self, 'non_ref'):
+                self.non_ref_plot = self.non_ref_plot[:, w_order]
+            wordlabs.sort()
+
+            #sort objs
+            objlabs = [world.objs_dict[i][0] for i in range(0, world.n_objs)]
+            o_order = np.argsort(objlabs)
+            self.ref_plot = self.ref_plot[o_order,]
+            objlabs.sort()
+
+        # set up plot
+        if world.n_words < 30:
+            fig = plt.figure(figsize=(10, 5))
+        else:
+            fig = plt.figure(figsize=(.5 * np.shape(hiwords)[0], .9 * world.n_objs))
+
+        gs = gridspec.GridSpec(2, 1, height_ratios=[9, 1])
+        fontsize = 1.5 * world.n_objs
+
+        # plot referential lexicon
+        ax1 = fig.add_subplot(gs[0])
+        ax1.pcolormesh(self.ref_plot, cmap=colormap)
+
+        #add word and obj ticks
+        if hasattr(world, 'words_dict'):
+
+            #word
+            pylab.xticks(np.arange(np.shape(hiwords)[0]) + .5, wordlabs)
+            plt.setp(plt.xticks()[1], rotation=90, fontsize=fontsize)
+
+            #objs
+            pylab.yticks(np.arange(world.n_objs) + .5, objlabs)
+            plt.setp(plt.yticks()[1], fontsize=fontsize)
+
+        else:
+            ax1.set_xticks(np.arange(world.n_words) + .5)
+            ax1.set_xticklabels(np.arange(world.n_words), fontsize=fontsize)
+            ax1.set_yticks(np.arange(world.n_objs) + .5)
+            ax1.set_yticklabels(np.arange(world.n_objs), fontsize=fontsize)
+
+        ax1.set_ylabel("objects", fontsize=fontsize + 5)
+        ax1.set_title('main lexicon', fontsize=fontsize + 10)
+
+        # plot non-referential lexicon
+        if hasattr(self, 'non_ref'):
+            ax2 = fig.add_subplot(gs[1])
+            ax2.pcolormesh(np.array([self.non_ref_plot]), cmap=colormap)
+
+            #add words ticks
+            if hasattr(world, 'words_dict'):
+                plt.setp(plt.xticks()[1], rotation=90, fontsize=fontsize)
+                pylab.xticks(np.arange(np.shape(hiwords)[0]) + .5, wordlabs)
+            else:
+                ax2.set_xticks(np.arange(world.n_words) + .5)
+                ax2.set_xticklabels(np.arange(world.n_words), fontsize=fontsize)
+
+            ax2.set_xlabel("words", fontsize=fontsize + 5)
+
+            #add obj ticks
+            ax2.set_yticks([])
+
+            ax2.set_title('non-referential lexicon', fontsize=fontsize + 10)
+            plt.tight_layout(pad=2)
+
+        else:
+            ax1.set_xlabel("words", fontsize=fontsize + 5)
 
     #########
     ## learnLex gets lexicon counts by gibbs sampling over the intended object/referring word
