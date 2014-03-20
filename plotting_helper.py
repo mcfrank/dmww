@@ -12,7 +12,7 @@ def lexplot(l, w, fontsize = 30, colormap = "Reds", certainwords = 1):
     if certainwords:
         hiwords = np.empty([0,1], dtype=int)
         for word in range(w.n_words):
-            if np.count_nonzero(l.ref[:, word]) != 0:
+            if np.count_nonzero(l.ref[:, word]):
                 hiwords = np.append(hiwords, word)
         l.ref_plot =  l.ref[:,hiwords]
     else:
@@ -26,9 +26,11 @@ def lexplot(l, w, fontsize = 30, colormap = "Reds", certainwords = 1):
     if hasattr(w, 'words_dict'):
 
         #word
-        wordlabs = list()
-        for i in range(0,np.shape(hiwords)[0]):
-            wordlabs.append(w.words_dict[hiwords[i]][0])
+        #wordlabs = list()
+        #for i in range(0,np.shape(hiwords)[0]):
+           # wordlabs.append(w.words_dict[hiwords[i]][0])
+
+        wordlabs = [w.words_dict[hiwords[i]][0] for i in range(0,np.shape(hiwords)[0])]
 
         #sort words
         w_order = np.argsort(wordlabs)
@@ -38,9 +40,11 @@ def lexplot(l, w, fontsize = 30, colormap = "Reds", certainwords = 1):
         wordlabs.sort()
 
         #obj
-        objlabs = list()
-        for i in range(0,w.n_objs):
-            objlabs.append(w.objs_dict[i][0])
+        #objlabs = list()
+        #for i in range(0,w.n_objs):
+         #   objlabs.append(w.objs_dict[i][0])
+        objlabs = [w.objs_dict[i][0] for i in range(0,w.n_objs)]
+
 
         #sort objs
         o_order = np.argsort(objlabs)
@@ -70,6 +74,7 @@ def lexplot(l, w, fontsize = 30, colormap = "Reds", certainwords = 1):
         #objs
         pylab.yticks(np.arange(w.n_objs) + .5, objlabs)
         plt.setp(plt.yticks()[1], fontsize=fontsize)
+
     else:
         ax1.set_xticks(np.arange(w.n_words) + .5)
         ax1.set_xticklabels(np.arange(w.n_words), fontsize=fontsize)
@@ -102,3 +107,12 @@ def lexplot(l, w, fontsize = 30, colormap = "Reds", certainwords = 1):
 
     else:
         ax1.set_xlabel("words" , fontsize=fontsize + 5)
+
+
+def scoreplot (scores):
+    fig, ax = plt.subplots()
+    ax.plot(np.arange(len(scores)), scores, '-')
+    plt.title('Sample Scores', )
+    plt.xlabel('sample')
+    plt.ylabel('sample score')
+
