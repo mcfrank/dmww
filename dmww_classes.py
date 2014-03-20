@@ -623,7 +623,6 @@ class Lexicon:
 
         return score
 
-
     #########
     ## hyperParamInf implements hyperparameter inference
     def hyper_param_inf(self,
@@ -662,3 +661,116 @@ class Lexicon:
         self.score_full_lex(corpus, params)
 
         return params
+
+    #########
+    ## choose_class - does the selection step
+    def choose_class(self, scores):
+        new_scores = scores - scores.max()
+        ps = exp(new_scores)
+        ps = ps / sum(sum(ps))
+        cum_ps = reshape(cumsum(ps), shape(ps))
+
+        r = random()
+        i = where(cum_ps > r)[0][0]
+        j = where(cum_ps > r)[1][0]
+        s = scores[i, j]
+
+        # return tuple of indices for greater than
+        if self.verbose > 0:
+            print "\n*** choosing %d, %d, score: %2.2f" % (i, j, s)
+
+        return i, j, s
+
+    #########
+    ## little function to keep track of samples
+    def tick(self, s):
+        if self.verbose > 0:
+            print "\n*************** %d ***************" % s
+        else:
+            if mod(s, 80) == 0:
+                print "\n"
+            else:
+                sys.stdout.write(".")
+
+    ########
+    ## scoring method
+    def update_score(self, i):
+        if self.inference_method == "gibbs":
+            score = sum(self.intent_obj_prob) + self.nr_score + \
+                    sum(self.ref_score) + self.param_score
+        elif self.inference_method == "pf":
+            # note +1 here to get the range right for the pf
+            score = sum(self.intent_obj_prob[0:i + 1]) + self.nr_score + \
+                    sum(self.ref_score) + self.param_score
+
+        return score
+
+    #########
+    ## generic show method
+    def show(self):
+        print self.ref
+
+        if hasattr(self, 'non_ref'):
+            print "nr: " + str(self.non_ref)
+
+    #########
+    ## show_top_match: show nice matching entry
+    def show_top_match(self, corpus, world):
+        if corpus.corpus != False:
+            for o in range(world.n_objs):
+                if max(self.ref[o, :]) > 0:
+                    w = where(self.ref[o, :] == max(self.ref[o, :]))[0]
+                    print "object: %s, word: %s" % (world.objs_dict[o][0], world.words_dict[w[0]][0])
+        else:
+            for o in range(world.n_objs):
+                w = where(self.ref[o, :] == max(self.ref[o, :]))[0]
+                print "object: %d, word: %d" % (o, w)
+
+
+#################################################################
+##### Particle class is for the particle filter
+class Particle:
+    #########
+    ## initialize the particle
+    def __init__(self, lex, corpus, params):
+        # deepcopy the particular params we need from the base lexicon
+        field_list = ["ref", "non_ref",
+                      "intent_obj_probs", "intent_obj_prob",
+                      "ref_score", "nr_score",
+                      "oi", "wi", "verbose"]
+
+        for p in lex.__dict__.keys():
+            if p in field_list:
+                exec ( "self.%s = copy.deepcopy(lex.%s)" % (p, p)) in locals(), globals()
+
+        # bookkeeping
+        self.inference_method = "pf"
+        self.sample_scores = [0.0] * corpus.n_sents
+
+        # initialize each object to have been null
+        self.intent_obj = map(lambda x: len(x[0]), corpus.sents)
+        self.ref_word = map(lambda x: len(x[1]), corpus.sents)
+
+        # update all the scores
+        self.score_full_lex(corpus, params, init=False)
+
+    #########
+    ## prep_sent - adds non-ref counts for current sentence
+    def prep_sent(self,
+                  corpus, params, i):
+
+        ws = corpus.sents[i][1]
+        for w in ws:
+            self.non_ref[w] += 1
+            self.nr_score = update_dm_plus(self.nr_score, self.non_ref,
+                                           params.alpha_nr, w)  # index to make it float, not np.array
+
+    #########
+    ## other inherited methods from Lexicon class
+    score_lex = Lexicon.__dict__["score_lex"]
+
+    choose_class = Lexicon.__dict__["choose_class"]
+
+    score_full_lex = Lexicon.__dict__["score_full_lex"]
+
+    update_score = Lexicon.__dict__["update_score"]

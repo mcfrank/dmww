@@ -5,37 +5,43 @@ from plotting_helper import *
 # The model
 ################################################################
 
-seed(1)
+# seed(1)
+#
+# w = World(n_words=4,
+#            n_objs=4)
+# w.show()
+#
+# c = Corpus(w,
+#            n_per_sent=2,
+#            n_sents=40)
+# c.show()
+#
+# p = Params(n_samps=10,
+#            n_particles=10,
+#            alpha_r=.1,
+#            alpha_nr=10,
+#            empty_intent=.0001,
+#            n_hypermoves=5)
+# p.show()
+#
+# print "\n\n****************************************** GIBBS SAMPLER ******"
+# seed(1)
+# l = Lexicon(c,p,
+#             verbose=0,
+#             hyper_inf=False)
+#
+# l.learn_lex_gibbs(c,p)
+# #
+# print "\n\n****************************************** PARTICLE FILTER ******"
+# seed(1)
+# l = Lexicon(c,p,
+#             verbose=0,
+#             hyper_inf=False)
+#
+# l.learn_lex_pf(c,p)
 
-w = World(n_words=8,
-           n_objs=8)
-w.show()
 
-c = Corpus(w,
-           n_per_sent=2,
-           n_sents=40)
-c.show()
-
-# print "*** coocurrence test ***"
-# l = CoocLexicon(w)
-# l.learn_lex(c)
-# l.show()
-
-# w 8, 8, c 1, 40, with a hundred samples and no hyperinf is around .18s / sample
-# in the worst case
-print "*** gibbs test ***"
-p = Params(n_samps=1,
-           alpha_r=.1,
-           alpha_nr=10,
-           empty_intent=.0001,
-           n_hypermoves=5)
-p.show()
-
-
-l = GibbsLexicon(c,p,
-                 verbose=0,
-                 hyper_inf=True)
-
+## PROFILE CODE
 # import cProfile, pstats, StringIO
 # pr = cProfile.Profile()
 # pr.enable()
@@ -54,31 +60,30 @@ l = GibbsLexicon(c,p,
 
 
 
-### CORPUS SIMS  ####
+## CORPUS SIMS  ####
+seed(1)
 corpusfile = 'corpora/corpus.csv'
 w = World(corpus=corpusfile)
 w.show()
 
 c = Corpus(world=w, corpus=corpusfile)
 
-p = Params(n_samps=10,
+p = Params(n_samps=100,
+           n_particles=10,
            alpha_r=.1,
            alpha_nr=10,
            empty_intent=.0001,
            n_hypermoves=10)
 
-l = GibbsLexicon(c, p,
-                 verbose=0,
-                 hyper_inf=True)
+l = Lexicon(c, p,
+            verbose=0,
+            hyper_inf=True)
 
-l.learn_lex(c,p)
+l.learn_lex_pf(c, p)
 
 l.show()
 l.params.show()
 l.show_top_match(c,w)
-
-lexplot(l,w, certainwords = True)
-pylab.show(block=True, figsize = [5,5])
 
 
 
