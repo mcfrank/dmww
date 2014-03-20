@@ -337,13 +337,30 @@ class Lexicon:
             #     self.params = params
 
         refs = np.zeros((params.n_particles, corpus.world.n_objs, corpus.world.n_words))
+        particle_scores = zeros(params.n_particles)
         for i, p in enumerate(self.particles):
-            p.verbose = 1
+            # p.verbose = 1
             p.score_full_lex(corpus, params, init=False)
             refs[i] = p.ref
+            particle_scores[i] = p.sample_scores[-1]
+        best = np.where(particle_scores==max(particle_scores))[0][0]
+        self.particles[best].verbose = 2
+        self.particles[best].score_full_lex(corpus, params, init=False)
 
         print "\n**** GRAND MEAN ****"
-        print np.around(refs.mean(axis=0),decimals=1)
+        print np.around(refs.mean(axis=0),decimals=2)
+
+        print "\n**** WEIGHTED MEAN ****"
+        particle_scores = exp(particle_scores - max(particle_scores))
+        particle_scores /= sum(particle_scores)
+        print "particle scores: " + str(np.around(particle_scores,decimals=2))
+        for i in range(params.n_particles):
+            refs[i] = multiply(refs[i],particle_scores[i])
+
+        refs = divide(refs,sum(particle_scores))
+        print np.around(refs.sum(axis=0),decimals=2)
+
+        self.ref = refs.sum(axis=0)
         # self.posterior_lex = self.get_posterior_lex(lexs)
         #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
         # print "\n"
