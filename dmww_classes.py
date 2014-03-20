@@ -75,9 +75,11 @@ class Corpus:
         self.n_sents = n_sents
         self.n_per_sent = n_per_sent
         self.corpus = corpus
+        self.gs = list()
 
-        # convert corpus from labels to numbers
+        # convert corpus and gold standard from labels to numbers
         if self.corpus:
+            # read in corpus
             raw_corpus = loadtxt(self.corpus, delimiter=',', dtype=str)
             self.sents = list()
 
@@ -88,19 +90,42 @@ class Corpus:
                 objs_labs = str.split(raw_corpus[s][0])
                 objs = list()
                 for i in range(size(objs_labs)):
-                    objs.append(world.objs_dict[find(world.objs_dict, objs_labs[i])[0]][1])
+                   objs.append(world.objs_dict[find(world.objs_dict, objs_labs[i])[0]][1])
                 sent.append(np.array(objs))
 
                 #add words
                 word_labs = str.split(raw_corpus[s][1])
                 words = list()
                 for i in range(size(word_labs)):
-                    words.append(world.words_dict[find(world.words_dict, word_labs[i])[0]][1])
+                   words.append(world.words_dict[find(world.words_dict, word_labs[i])[0]][1])
                 sent.append(np.array(words))
 
                 self.sents.append(sent)
 
             self.n_sents = len(self.sents)
+
+            # read in gold standard and convert with dict using world associated with corpus
+            gs_raw = loadtxt('corpora/gold_standard.csv', delimiter=',', dtype=str)
+            self.gs = list()
+
+            for s in range(shape(gs_raw)[0]):
+                sent = list()
+
+                #add objs
+                dict_io = find(world.objs_dict, gs_raw[s][0])
+                if dict_io != -1: #only include if in corpus
+                    objs = world.objs_dict[dict_io[0]][1]
+                    sent.append(np.array(objs))
+
+                #add words
+                dict_iw = find(world.words_dict, gs_raw[s][1])
+                if dict_iw != -1: #only include if in corpus
+                    words = world.words_dict[dict_iw[0]][1]
+                    sent.append(np.array(words))
+
+                if ((dict_io != -1) & (dict_iw != -1)):
+                    self.gs.append(sent)
+
         else:
             self.sample_sents()
 
@@ -310,6 +335,53 @@ class Lexicon:
         else:
             ax1.set_xlabel("words" , fontsize=fontsize + 5)
 
+    def get_f(self, corpus, threshold,  lex_eval = "ref",):
+        gs = squeeze(asarray(corpus.gs))
+        gs_num_mappings = shape(gs)[0]
+
+        if lex_eval == "ref":
+            lex = self.ref
+        else:
+            lex = self.non_ref
+
+        #threshold lexicon by normalizing across words (each row)
+        row_sums = lex.sum(axis=1)
+        lex = np.divide(lex, row_sums[:, newaxis])
+
+        links = where(lex > threshold)
+        obj_is = links[0]
+        word_is = links[1]
+        lex_num_mappings = size(obj_is)
+
+        # compute precision, what portion of the target lex is composed of gold pairings
+        p_count = 0
+        for pair in range(lex_num_mappings):
+            this_obj = obj_is[pair]
+            this_word = word_is[pair]
+            #loop over gold standard
+            if size(where((gs[:,0] == this_obj) & (gs[:,1] == this_word))) > 0:
+                p_count = p_count + 1
+
+        if (lex_num_mappings == 0): #special case
+          precision = 0
+        else:
+          precision = float(p_count) / float(lex_num_mappings)
+
+        # compute recall, how many of the total gold pairings are in the target lex
+        recall = float(p_count) / float(gs_num_mappings)
+
+        # now F is just the harmonic mean
+        try:
+            f = stats.hmean([precision, recall])
+        except ValueError:
+            print "Recall or precision 0, could not compute f score."
+        else:
+            print "precision: %2.2f " % precision
+            print "recall: %2.2f" % recall
+            print "f: %2.2f" % f
+
+        #return (precision, recall, f)
+
 
 
 
@@ -387,6 +459,7 @@ class GibbsLexicon(Lexicon):
         ax.plot(np.arange(len(self.sample_scores)), self.sample_scores, '-')
         plt.xlabel('sample')
         plt.ylabel('sample score')
+        plt.title('Lexicon score over time')
         return ax
 
 
