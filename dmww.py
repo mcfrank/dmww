@@ -7,17 +7,17 @@ from plotting_helper import *
 
 seed(1)
 
-w = World(n_words=8,
-           n_objs=8)
+w = World(n_words=4,
+           n_objs=4)
 w.show()
 
 c = Corpus(w,
            n_per_sent=2,
-           n_sents=10)
+           n_sents=40)
 c.show()
 
 p = Params(n_samps=100,
-           n_particles=1,
+           n_particles=100,
            alpha_r=.1,
            alpha_nr=10,
            empty_intent=.0001,
@@ -31,19 +31,17 @@ p.show()
 #             hyper_inf=False)
 #
 # l.learn_lex_gibbs(c,p)
-# l.show()
-
+#
 print "\n\n****************************************** PARTICLE FILTER ******"
 seed(1)
 l = Lexicon(c,p,
-            verbose=1,
+            verbose=0,
             hyper_inf=False)
 
 l.learn_lex_pf(c,p)
-l.show()
 
 
-
+## PROFILE CODE
 # import cProfile, pstats, StringIO
 # pr = cProfile.Profile()
 # pr.enable()
@@ -62,14 +60,16 @@ l.show()
 
 
 
-### CORPUS SIMS  ####
+# ## CORPUS SIMS  ####
 # corpusfile = 'corpora/corpus.csv'
 # w = World(corpus=corpusfile)
 # w.show()
 #
 # c = Corpus(world=w, corpus=corpusfile)
+# # c.rep(10)
 #
 # p = Params(n_samps=100,
+#            n_particles=1,
 #            alpha_r=.1,
 #            alpha_nr=10,
 #            empty_intent=.0001,
@@ -79,14 +79,12 @@ l.show()
 #             verbose=0,
 #             hyper_inf=True)
 #
-# l.learn_lex_gibbs(c,p)
+# l.learn_lex_pf(c,p)
 #
 # l.show()
 # l.params.show()
 # l.show_top_match(c,w)
-#
-# lexplot(l,w)
-# pylab.show(block=True)
+
 
 
 # pr.disable()

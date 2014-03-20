@@ -124,6 +124,14 @@ class Corpus:
         for s in self.sents:
             print "o: " + str(s[0]) + " w: " + str(s[1])
 
+    def rep(self, n):
+        self.n_sents *= n
+        self.sents *= n
+        self.n_os = map(lambda x: len(x[0]), self.sents)
+        self.n_ws = map(lambda x: len(x[1]), self.sents)
+
+
+
 
 #################################################################
 ##### Params class is the parameter set for the model
@@ -176,8 +184,7 @@ class Params:
 
 
 #################################################################
-##### Lexicon class is the main classs #####
-## others inherit from this
+##### Lexicon class is the main class for the model #####
 class Lexicon:
     ########
     ## initLex initializes all of the lexicon bits and pieces, which include:
@@ -218,6 +225,9 @@ class Lexicon:
         # for gibbs, otherwise unused
         self.sample_scores = [None] * params.n_samps
 
+        # for pf, otherwise unused
+        self.particles = []
+
     #########
     ## learn_lex_cooc: get coocurrence counts
     def learn_lex_cooc(self, corpus):
@@ -226,7 +236,6 @@ class Lexicon:
             for o in s[0]:
                 for w in s[1]:
                     self.ref[o, w] += 1
-
 
     #########
     ## init_gibbs - randomly assigns and scores
@@ -242,7 +251,6 @@ class Lexicon:
 
         # now update all the scores
         self.score_full_lex(corpus, params, init=True)
-
 
     #########
     ## learnLex gets lexicon counts by gibbs sampling over the intended object/referring word
@@ -293,29 +301,17 @@ class Lexicon:
 
 
     #########
-    ## init_pf - randomly assigns and scores
-    def init_pf(self, corpus, params):
-
-        # initialize each object to have been null
-        self.intent_obj = map(lambda x: len(x[0]), corpus.sents)
-        self.ref_word = map(lambda x: len(x[1]), corpus.sents)
-
-        # update all the scores
-        self.score_full_lex(corpus, params, init=False)
-
-    #########
     ## learn_lex_pf implements a particle filter
     ## similar to the gibbs
     def learn_lex_pf(self,
                      corpus,
                      params):
 
-        # lexs = nans([corpus.world.n_objs, corpus.world.n_words, params.n_samps])
         # start_time = time.clock()
-        # self.tick(s)  # keep track of samples
         self.inference_method = "pf"
-        self.init_pf(corpus, params)
-        self.sample_scores = nans(corpus.n_sents)
+
+        for p in range(params.n_particles):
+            self.particles.append(Particle(self, corpus, params))
 
         for i in range(corpus.n_sents):
             self.tick(i)  # keep track of samples
@@ -323,47 +319,37 @@ class Lexicon:
             if self.verbose > 1:
                 print "\n********* sent " + str(i) + " - " + str(corpus.sents[i]) + " :"
 
-            self.prep_sent_pf(corpus, params, i)
-
-            # for p in range(params.n_particles):
-
-
             # the important steps: prepare the lexicon for trying stuff in this setup
-            scores = neg_infs((corpus.n_os[i] + 1, corpus.n_ws[i]))  # +1 for null
+            for p in self.particles:
+                p.prep_sent(corpus, params, i)
+                scores = neg_infs((corpus.n_os[i] + 1, corpus.n_ws[i]))  # +1 for null
 
-            for j in range(corpus.n_os[i] + 1):  # +1 for null
-                for k in range(corpus.n_ws[i]):
-                    scores[j, k] = self.score_lex(corpus, params, i, j, k, self.verbose)
+                for j in range(corpus.n_os[i] + 1):  # +1 for null
+                    for k in range(corpus.n_ws[i]):
+                        scores[j, k] = p.score_lex(corpus, params, i, j, k, self.verbose)
 
-            # now choose the class and reassign
-            # print scores
-            (j, k, self.sample_scores[i]) = self.choose_class(scores)
-            # print (j, k)
-            self.score_lex(corpus, params, i, j, k, 0)
+                # now choose the class and reassign
+                (j, k, p.sample_scores[i]) = p.choose_class(scores)
+                p.score_lex(corpus, params, i, j, k, 0)
 
             # if self.hyper_inf:
             #     params = self.hyper_param_inf(corpus, params, self.sample_scores[s])
             #     self.params = params
 
-        self.verbose = 2
-        self.score_full_lex(corpus, params, init=False)
+        refs = np.zeros((params.n_particles, corpus.world.n_objs, corpus.world.n_words))
+        for i, p in enumerate(self.particles):
+            p.verbose = 1
+            p.score_full_lex(corpus, params, init=False)
+            refs[i] = p.ref
+
+        print "\n**** GRAND MEAN ****"
+        print np.around(refs.mean(axis=0),decimals=1)
         # self.posterior_lex = self.get_posterior_lex(lexs)
         #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
         # print "\n"
         # self.show()
         # self.params.show()
         # print "\n *** average sample time: %2.3f sec" % ((time.clock() - start_time) / params.n_samps)
-
-    #########
-    ## prep_sent_pf - adds non-ref counts for current sentence
-    def prep_sent_pf(self,
-                     corpus, params, i):
-
-        ws = corpus.sents[i][1]
-        for w in ws:
-            self.non_ref[w] += 1
-            self.nr_score = update_dm_plus(self.nr_score, self.non_ref,
-                                           params.alpha_nr, w)  # index to make it float, not np.array
 
     #########
     ## score_lex - a more cached version of the scoring functions
@@ -437,7 +423,6 @@ class Lexicon:
                                                       score)
         return score
 
-
     #########
     ## score_full_lex - rescore everything
     ## - use this for setup in combo with initLex
@@ -485,10 +470,7 @@ class Lexicon:
             self.ref_score[i] = score_dm(self.ref[i, :], params.alpha_r)
 
         # cache non-ref DM score also
-        print "scoring full, init:" + str(init)
-        print self.nr_score
         self.nr_score = score_dm(self.non_ref, params.alpha_nr)
-        print self.nr_score
 
         # score hyperparameters (via hyper-hyperparameters)
         empty_intent_score = beta.logpdf(params.empty_intent, params.intent_hp_a, params.intent_hp_b)
@@ -502,10 +484,13 @@ class Lexicon:
             print "\n--- score full lex ---"
             print self.ref
             print " " + str(self.non_ref)
-            print "counts: %d" % (sum(self.non_ref) + sum(self.ref))
-            print "    intent obj: " + str(self.intent_obj)
-            print "    ref word: " + str(self.ref_word)
-            print "    intent obj prob: " + str(self.intent_obj_prob.round(1))
+
+            if self.verbose > 1:
+                print "counts: %d" % (sum(self.non_ref) + sum(self.ref))
+                print "    intent obj: " + str(self.intent_obj)
+                print "    ref word: " + str(self.ref_word)
+                print "    intent obj prob: " + str(self.intent_obj_prob.round(1))
+
             print "full score: r %2.1f, nr %2.1f, i %2.1f, " \
                       "p %2.1f,  total: %2.1f" % (sum(self.ref_score),
                                                   self.nr_score,
@@ -623,3 +608,53 @@ class Lexicon:
             for o in range(world.n_objs):
                 w = where(self.ref[o, :] == max(self.ref[o, :]))[0]
                 print "object: %d, word: %d" % (o, w)
+
+
+#################################################################
+##### Particle class is for the particle filter
+class Particle:
+
+    #########
+    ## initialize the particle
+    def __init__(self, lex, corpus, params):
+        # deepcopy the particular params we need from the base lexicon
+        field_list = ["ref","non_ref",
+                      "intent_obj_probs","intent_obj_prob",
+                      "ref_score","nr_score",
+                      "oi","wi","verbose"]
+
+        for p in lex.__dict__.keys():
+            if p in field_list:
+                exec( "self.%s = copy.deepcopy(lex.%s)" % (p, p)) in locals(), globals()
+
+        # bookkeeping
+        self.inference_method = "pf"
+        self.sample_scores = [0.0] * corpus.n_sents
+
+        # initialize each object to have been null
+        self.intent_obj = map(lambda x: len(x[0]), corpus.sents)
+        self.ref_word = map(lambda x: len(x[1]), corpus.sents)
+
+        # update all the scores
+        self.score_full_lex(corpus, params, init=False)
+
+    #########
+    ## prep_sent - adds non-ref counts for current sentence
+    def prep_sent(self,
+                     corpus, params, i):
+
+        ws = corpus.sents[i][1]
+        for w in ws:
+            self.non_ref[w] += 1
+            self.nr_score = update_dm_plus(self.nr_score, self.non_ref,
+                                           params.alpha_nr, w)  # index to make it float, not np.array
+
+    #########
+    ## other inherited methods from Lexicon class
+    score_lex = Lexicon.__dict__["score_lex"]
+
+    choose_class = Lexicon.__dict__["choose_class"]
+
+    score_full_lex = Lexicon.__dict__["score_full_lex"]
+
+    update_score = Lexicon.__dict__["update_score"]
