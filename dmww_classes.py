@@ -1,7 +1,7 @@
 import numpy as np
 from sampling_helper import *
 from scipy.stats import gamma, beta
-import sys
+import sys as sys
 from corpus_helper import *
 import time
 import copy
@@ -11,7 +11,7 @@ import matplotlib.gridspec as gridspec
 import pylab
 
 # todo:
-# - consider removing word failure process
+# x consider removing word failure process
 # - fix intent hyperparameter inference
 
 ################################################################
@@ -152,12 +152,21 @@ class Corpus:
         for s in self.sents:
             print "o: " + str(s[0]) + " w: " + str(s[1])
 
+    def rep(self, n):
+        self.n_sents *= n
+        self.sents *= n
+        self.n_os = map(lambda x: len(x[0]), self.sents)
+        self.n_ws = map(lambda x: len(x[1]), self.sents)
+
+
+
 
 #################################################################
 ##### Params class is the parameter set for the model
 class Params:
     def __init__(self,
                  n_samps=100,
+                 n_particles=1,
                  alpha_nr=.1,
                  alpha_r=.1,
                  empty_intent=.000001,
@@ -169,6 +178,7 @@ class Params:
 
         # these are integers
         self.n_samps = int(n_samps)
+        self.n_particles = int(n_particles)
         self.n_hypermoves = int(n_hypermoves)
 
         # cast these to floats to avoid weird type problems
@@ -202,74 +212,111 @@ class Params:
 
 
 #################################################################
-##### Lexicon class is the main class #####
-## others inherit from this
+##### Lexicon class is the main class for the model #####
 class Lexicon:
-    def __init__(self, world,
-                 verbose=0):
+    ########
+    ## initLex initializes all of the lexicon bits and pieces, which include:
+    ## - random guesses for intentions
+    ## - counts for lexicon based on this
+    ## - score caches for all words
+    def __init__(self,
+                 corpus,
+                 params,
+                 verbose=0,
+                 hyper_inf=True):
+
+        # for debugging
         self.verbose = verbose
-        self.ref = zeros((world.n_objs, world.n_words))
 
-    # generic show method, where visualization eventually goes
-    def show(self):
-        print self.ref
+        # settings
+        self.hyper_inf = hyper_inf
+        self.params = params
+        self.inference_method = None
 
-        if hasattr(self, 'non_ref'):
-            print "nr: " + str(self.non_ref)
+        # initialize the relevant variables
+        self.ref = zeros((corpus.world.n_objs, corpus.world.n_words))
+        self.non_ref = zeros(corpus.world.n_words)
+        self.intent_obj = zeros(corpus.n_sents, dtype=int)
+        self.ref_word = zeros(corpus.n_sents, dtype=int)
+        self.param_score = 0.0
 
-    def interim_show(self):
-        if self.verbose > 0:
-            print self.ref
+        # initialize cached probabilities
+        self.intent_obj_probs = [None] * corpus.n_sents  # list
+        self.intent_obj_prob = zeros(corpus.n_sents)  # numpy array
+        self.ref_score = zeros(corpus.world.n_objs)
+        self.nr_score = 0.0
 
-            if hasattr(self, 'non_ref'):
-                print "nr: " + str(self.non_ref)
+        # build object and word indices for quick indexing
+        self.oi = map(lambda x: np.array(range(len(x[0]))), corpus.sents)
+        self.wi = map(lambda x: np.array(range(len(x[1]))), corpus.sents)
 
-        if self.verbose > 1:
-            print "interim scores: %2.1f, %2.1f, %2.1f, " \
-                  "%2.1f, %2.1f, total: %2.1f" % (sum(self.ref_score),
-                                                  self.nr_score,
-                                                  sum(self.intent_obj_prob),
-                                                  sum(self.ref_word_prob),
-                                                  self.param_score,
-                                                  self.update_score())
+        # for gibbs, otherwise unused
+        self.sample_scores = [None] * params.n_samps
 
-    def show_top_match(self, corpus, world):
-        if corpus.corpus != False:
-            for o in range(world.n_objs):
-                if max(self.ref[o, :]) > 0:
-                    w = where(self.ref[o, :] == max(self.ref[o, :]))[0]
-                    print "object: %s, word: %s" % (world.objs_dict[o][0], world.words_dict[w[0]][0])
-        else:
-            for o in range(world.n_objs):
-                w = where(self.ref[o, :] == max(self.ref[o, :]))[0]
-                print "object: %d, word: %d" % (o, w)
+        # for pf, otherwise unused
+        self.particles = []
 
-    def plot_lex(self, world, colormap = "Reds", certainwords = 1):
+    #########
+    ## learn_lex_cooc: get coocurrence counts
+    def learn_lex_cooc(self, corpus):
+
+        for s in corpus.sents:
+            for o in s[0]:
+                for w in s[1]:
+                    self.ref[o, w] += 1
+
+    #########
+    ## init_gibbs - randomly assigns and scores
+    def init_gibbs(self, corpus, params):
+        # choose random word and object to be talked about in each sentence
+        # or consider the null object (the +1)
+        for i in range(corpus.n_sents):
+            n_os = len(corpus.sents[i][0])
+            n_ws = len(corpus.sents[i][1])
+
+            self.intent_obj[i] = sample(range(n_os + 1), 1)[0] # +1 for null
+            self.ref_word[i] = sample(range(n_ws), 1)[0]
+
+        # now update all the scores
+        self.score_full_lex(corpus, params, init=True)
+
+    #########
+    ## plot_scores - plots scores
+    def plot_scores(self):
+        fig, ax = plt.subplots()
+        ax.plot(np.arange(len(self.sample_scores)), self.sample_scores, '-')
+        plt.xlabel('sample')
+        plt.ylabel('sample score')
+        return ax
+
+    #########
+    ## plot_lex plots lexicon nicely
+    def plot_lex(self, world, colormap="Reds", certainwords=1):
         # certainwords plots all only non-zero probabilities
 
         # get data to plot
         if certainwords:
-            hiwords = np.empty([0,1], dtype=int)
+            hiwords = np.empty([0, 1], dtype=int)
             for word in range(world.n_words):
                 if np.count_nonzero(self.ref[:, word]):
                     hiwords = np.append(hiwords, word)
-            self.ref_plot =  self.ref[:,hiwords]
+            self.ref_plot = self.ref[:, hiwords]
         else:
-            self.ref_plot =  self.ref
+            self.ref_plot = self.ref
             hiwords = range(0, world.n_words)
 
         if hasattr(self, 'non_ref'):
-            self.non_ref_plot =  self.non_ref[: , hiwords]
+            self.non_ref_plot = self.non_ref[:, hiwords]
 
-        # get labels for plot, and sort data alphabetically
+            # get labels for plot, and sort data alphabetically
         if hasattr(world, 'words_dict'):
 
             #sort words
             wordlabs = [world.words_dict[hiwords[i]][0] for i in range(0, np.shape(hiwords)[0])]
             w_order = np.argsort(wordlabs)
-            self.ref_plot = self.ref_plot[:,w_order]
+            self.ref_plot = self.ref_plot[:, w_order]
             if hasattr(self, 'non_ref'):
-                self.non_ref_plot = self.non_ref_plot[:,w_order]
+                self.non_ref_plot = self.non_ref_plot[:, w_order]
             wordlabs.sort()
 
             #sort objs
@@ -284,12 +331,12 @@ class Lexicon:
         else:
             fig = plt.figure(figsize=(.5 * np.shape(hiwords)[0], .9 * world.n_objs))
 
-        gs = gridspec.GridSpec(2, 1, height_ratios=[9,1])
+        gs = gridspec.GridSpec(2, 1, height_ratios=[9, 1])
         fontsize = 1.5 * world.n_objs
 
         # plot referential lexicon
         ax1 = fig.add_subplot(gs[0])
-        ax1.pcolormesh(self.ref_plot, cmap = colormap)
+        ax1.pcolormesh(self.ref_plot, cmap=colormap)
 
         #add word and obj ticks
         if hasattr(world, 'words_dict'):
@@ -314,7 +361,7 @@ class Lexicon:
         # plot non-referential lexicon
         if hasattr(self, 'non_ref'):
             ax2 = fig.add_subplot(gs[1])
-            ax2.pcolormesh(np.array([self.non_ref_plot]), cmap = colormap)
+            ax2.pcolormesh(np.array([self.non_ref_plot]), cmap=colormap)
 
             #add words ticks
             if hasattr(world, 'words_dict'):
@@ -330,10 +377,11 @@ class Lexicon:
             ax2.set_yticks([])
 
             ax2.set_title('non-referential lexicon', fontsize=fontsize + 10)
-            plt.tight_layout(pad = 2)
+            plt.tight_layout(pad=2)
 
         else:
             ax1.set_xlabel("words" , fontsize=fontsize + 5)
+
 
     def get_f(self, corpus, threshold,  lex_eval = "ref",):
         gs = squeeze(asarray(corpus.gs))
@@ -467,11 +515,14 @@ class GibbsLexicon(Lexicon):
     ## learnLex gets lexicon counts by gibbs sampling over the intended object/referring word
     ## the heart of this function is the loop over possible lexicons based on changing the scores
     ## this is technically a block gibbs over objects and words (indexed by j and k)
-    def learn_lex(self,
+    def learn_lex_gibbs(self,
                   corpus,
                   params):
 
-        self.sample_scores = nans(params.n_samps)
+        # initialize for gibbs
+        self.inference_method = "gibbs"
+        self.init_gibbs(corpus, params)
+
         lexs = nans([corpus.world.n_objs, corpus.world.n_words, params.n_samps])
         start_time = time.clock()
 
@@ -487,134 +538,166 @@ class GibbsLexicon(Lexicon):
 
                 for j in range(corpus.n_os[i] + 1):  # +1 for null
                     for k in range(corpus.n_ws[i]):
-                        self.prep_lex(corpus, params, i)
-                        scores[j, k] = self.score_lex(corpus, params, i, j, k)
-                        self.interim_show()
+                        scores[j, k] = self.score_lex(corpus, params, i, j, k, self.verbose)
 
                 # now choose the class and reassign
                 (j, k, self.sample_scores[s]) = self.choose_class(scores)
-                self.score_lex(corpus, params, i, j, k)
-                lexs[:,:,s] = copy.deepcopy(self.ref)
-                self.interim_show()
+                self.score_lex(corpus, params, i, j, k, 0)
+                lexs[:, :, s] = copy.deepcopy(self.ref)
 
             if self.hyper_inf:
                 params = self.hyper_param_inf(corpus, params, self.sample_scores[s])
                 self.params = params
 
-        #self.posterior_lex = self.get_posterior_lex(lexs)
+        # self.posterior_lex = self.get_posterior_lex(lexs)
         #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
         # print "\n"
         # self.show()
         # self.params.show()
+        self.verbose = 2
+        self.score_full_lex(corpus, params, init=False)
         print "\n *** average sample time: %2.3f sec" % ((time.clock() - start_time) / params.n_samps)
 
-    # #########
-    # ## choose_class - does the selection step
-    # def get_posterior_lex(self, lexs):
-
 
     #########
-    ## choose_class - does the selection step
-    def choose_class(self, scores):
-        new_scores = scores - scores.max()
-        ps = exp(new_scores)
-        ps = ps / sum(sum(ps))
-        cum_ps = reshape(cumsum(ps), shape(ps))
+    ## learn_lex_pf implements a particle filter
+    ## similar to the gibbs
+    def learn_lex_pf(self,
+                     corpus,
+                     params):
 
-        r = random()
-        i = where(cum_ps > r)[0][0]
-        j = where(cum_ps > r)[1][0]
-        s = scores[i, j]
+        # start_time = time.clock()
+        self.inference_method = "pf"
 
-        # return tuple of indices for greater than
-        if self.verbose > 0:
-            print "\n--- choosing %d, %d, score: %2.2f" % (i, j, s)
+        for p in range(params.n_particles):
+            self.particles.append(Particle(self, corpus, params))
 
-        return i, j, s
+        for i in range(corpus.n_sents):
+            self.tick(i)  # keep track of samples
 
+            if self.verbose > 1:
+                print "\n********* sent " + str(i) + " - " + str(corpus.sents[i]) + " :"
+
+            # the important steps: prepare the lexicon for trying stuff in this setup
+            for p in self.particles:
+                p.prep_sent(corpus, params, i)
+                scores = neg_infs((corpus.n_os[i] + 1, corpus.n_ws[i]))  # +1 for null
+
+                for j in range(corpus.n_os[i] + 1):  # +1 for null
+                    for k in range(corpus.n_ws[i]):
+                        scores[j, k] = p.score_lex(corpus, params, i, j, k, self.verbose)
+
+                # now choose the class and reassign
+                (j, k, p.sample_scores[i]) = p.choose_class(scores)
+                p.score_lex(corpus, params, i, j, k, 0)
+
+            # if self.hyper_inf:
+            #     params = self.hyper_param_inf(corpus, params, self.sample_scores[s])
+            #     self.params = params
+
+        refs = np.zeros((params.n_particles, corpus.world.n_objs, corpus.world.n_words))
+        particle_scores = zeros(params.n_particles)
+        for i, p in enumerate(self.particles):
+            # p.verbose = 1
+            p.score_full_lex(corpus, params, init=False)
+            refs[i] = p.ref
+            particle_scores[i] = p.sample_scores[-1]
+        best = np.where(particle_scores==max(particle_scores))[0][0]
+        self.particles[best].verbose = 2
+        self.particles[best].score_full_lex(corpus, params, init=False)
+
+        print "\n**** GRAND MEAN ****"
+        print np.around(refs.mean(axis=0),decimals=2)
+
+        print "\n**** WEIGHTED MEAN ****"
+        particle_scores = exp(particle_scores - max(particle_scores))
+        particle_scores /= sum(particle_scores)
+        print "particle scores: " + str(np.around(particle_scores,decimals=2))
+        for i in range(params.n_particles):
+            refs[i] = multiply(refs[i],particle_scores[i])
+
+        refs = divide(refs,sum(particle_scores))
+        print np.around(refs.sum(axis=0),decimals=2)
+
+        self.ref = refs.sum(axis=0)
+        # self.posterior_lex = self.get_posterior_lex(lexs)
+        #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
+        # print "\n"
+        # self.show()
+        # self.params.show()
+        # print "\n *** average sample time: %2.3f sec" % ((time.clock() - start_time) / params.n_samps)
 
     #########
-    ## little function to keep track of samples
-    def tick(self, s):
-        if self.verbose > 0:
-            print "\n*************** sample %d ***************" % s
-        else:
-            if mod(s, 80) == 0:
-                print "\n"
-            else:
-                sys.stdout.write(".")
-
-
-    #########
-    ## score_lex - a more cached version of score_lex_simple
+    ## score_lex - a more cached version of the scoring functions
     def score_lex(self,
                   corpus,
                   params,
-                  i, j, k):
+                  i, j, k,
+                  verbose):
 
-        # reassign this j/k pair for this sentence
+        # old object and word
+        # we do this with indices so that if you give a bad index,
+        # you just get an empty object/word
+        old_o = corpus.sents[i][0][self.oi[i] == self.intent_obj[i]]
+        old_w = corpus.sents[i][1][self.wi[i] == self.ref_word[i]]
         new_o = corpus.sents[i][0][self.oi[i] == j]
         new_w = corpus.sents[i][1][self.wi[i] == k]
 
-        # now do the reassignment
-        self.intent_obj[i] = j
-        self.ref_word[i] = k
+        # now subtract their counts from the referential lexicon,
+        # but only if there was a referred object
+        # and add word back to the non-referential lexicon
+        if old_o.size > 0:
+            self.ref[old_o, old_w] -= 1
+            self.ref_score[old_o] = update_dm_minus(self.ref_score[old_o],
+                                                    self.ref[old_o, :][0],
+                                                    params.alpha_r, old_w)
+            self.non_ref[old_w] += 1
+            self.nr_score = update_dm_plus(self.nr_score, self.non_ref,
+                                           params.alpha_nr, old_w[0])
 
-        # update the probabilities
-        self.intent_obj_prob[i] = self.intent_obj_probs[i][j]
-
-        # critical part: rescore and shift counts in ref lexicon
-        if new_o.size > 0 and new_w.size > 0:
-            self.ref[new_o, new_w] += 1
-            self.ref_score[new_o] = update_dm_plus(self.ref_score[new_o], self.ref[new_o, :][0],
-                                                   params.alpha_r, new_w)
-
+        # critical part: re-score and shift counts in ref lexicon
         # and non-ref lexicon, but only if there is a non-null object
         if new_o.size > 0:
+            self.ref[new_o, new_w] += 1
+            self.ref_score[new_o] = update_dm_plus(self.ref_score[new_o],
+                                                   self.ref[new_o, :][0],
+                                                   params.alpha_r, new_w)
             self.non_ref[new_w] -= 1
             self.nr_score = update_dm_minus(self.nr_score, self.non_ref,
-                                                params.alpha_nr, new_w)
+                                                params.alpha_nr, new_w[0])
 
-        score = self.update_score()
-
-        if self.verbose:
-            print "\n -- score lex: %d, %d" % (j, k)
-            print "    new o: " + str(new_o) + " , new w: " + str(new_w)
-
-        return score
-
-
-    #########
-    ## score_lex_simple
-    def score_lex_simple(self,
-                         corpus,
-                         params,
-                         i, j, k):
-        # reassign this j/k pair for this sentence
-        new_o = corpus.sents[i][0][self.oi[i] == j]
-        new_w = corpus.sents[i][1][self.wi[i] == k]
-
+        # now do the reassignment and update score
         self.intent_obj[i] = j
         self.ref_word[i] = k
-
-        # update the probabilities
         self.intent_obj_prob[i] = self.intent_obj_probs[i][j]
+        score = self.update_score(i)
 
-        # critical part: rescore and shift counts in ref lexicon
-        self.ref[new_o, new_w] += 1
+        if verbose:
+            print "\n--- score lex: %d, %d ---" % (j, k)
+            print "old o: " + str(old_o) + ", old w: " + str(old_w)
+            print "new o: " + str(new_o) + ", new w: " + str(new_w)
 
-        if new_o.size > 0: # if non-null intent
-            self.non_ref[new_w] -= 1
+            print self.ref
+            print " " + str(self.non_ref)
+            print "counts: %d" % (sum(self.non_ref) + sum(self.ref))
 
-        # score lexicon
-        for o in range(corpus.world.n_objs):
-            self.ref_score[o] = score_dm(self.ref[o, :], params.alpha_r)
-        self.nr_score = score_dm(self.non_ref, params.alpha_nr)
-
-        score = self.update_score()
-
+            # note the only difference here is whether you score the full range of
+            # intents - or only up to the sentence heard by pf
+            if self.inference_method == "gibbs":
+                print "interim score: r %2.1f, nr %2.1f, i %2.1f, " \
+                      "p %2.1f,  total: %2.1f" % (sum(self.ref_score),
+                                                      self.nr_score,
+                                                      sum(self.intent_obj_prob),
+                                                      self.param_score,
+                                                      score)
+            elif self.inference_method == "pf":
+                print "interim score: r %2.1f, nr %2.1f, i %2.1f, " \
+                      "p %2.1f,  total: %2.1f" % (sum(self.ref_score),
+                                                      self.nr_score,
+                                                      sum(self.intent_obj_prob[0:i+1]),
+                                                      self.param_score,
+                                                      score)
         return score
-
 
     #########
     ## score_full_lex - rescore everything
@@ -624,6 +707,7 @@ class GibbsLexicon(Lexicon):
                        corpus,
                        params,
                        init=False):
+
         # set up the intent caching
         for i in range(corpus.n_sents):
 
@@ -643,11 +727,16 @@ class GibbsLexicon(Lexicon):
                 io = self.oi[i] == self.intent_obj[i]
                 rw = self.wi[i] == self.ref_word[i]
 
-                if io.any() and rw.any(): #  protect against nulls
+                if io.any():  # protect against nulls
                     self.ref[corpus.sents[i][0][io],corpus.sents[i][1][rw]] += 1
 
                 # includes all words that are not the referential word
                 self.non_ref[corpus.sents[i][1][self.wi[i] != self.ref_word[i]]] += 1
+
+                # now add the referential words for null objects
+                if not io.any():
+                    self.non_ref[corpus.sents[i][1][self.wi[i] == self.ref_word[i]]] += 1
+
 
             # now set up the quick scoring probability caches
             self.intent_obj_prob[i] = self.intent_obj_probs[i][self.intent_obj[i]]
@@ -664,65 +753,29 @@ class GibbsLexicon(Lexicon):
         alpha_score = gamma.logpdf(params.alpha_r, params.alpha_r_hp) + gamma.logpdf(params.alpha_nr,
                                                                                      params.alpha_nr_hp)
         self.param_score = empty_intent_score + alpha_score
+        score = self.update_score(corpus.n_sents)
 
         # debugging stuff
-        if self.verbose > 1:
-            print "-- score full lex"
-            print "    intent obj: " + str(self.intent_obj)
-            print "    intent obj prob: " + str(self.intent_obj_prob.round(1))
-            print "    ref word: " + str(self.ref_word)
-            print "    ref word prob: " + str(self.ref_word_prob.round(1))
-            print "lex: " + str(self.ref)
-            print "nr lex: " + str(self.non_ref)
-            print "    ref score: " + str(self.ref_score)
-            print "    nref score: " + str(self.nr_score)
-            print "params: " + str(self.param_score)
-            print "    empty: " + str(empty_intent_score)
-            print "    alpha: " + str(alpha_score)
+        if self.verbose > 0:
+            print "\n--- score full lex ---"
+            print self.ref
+            print " " + str(self.non_ref)
 
-        score = self.update_score()
+            if self.verbose > 1:
+                print "counts: %d" % (sum(self.non_ref) + sum(self.ref))
+                print "    intent obj: " + str(self.intent_obj)
+                print "    ref word: " + str(self.ref_word)
+                print "    intent obj prob: " + str(self.intent_obj_prob.round(1))
+
+            print "full score: r %2.1f, nr %2.1f, i %2.1f, " \
+                      "p %2.1f,  total: %2.1f" % (sum(self.ref_score),
+                                                  self.nr_score,
+                                                  sum(self.intent_obj_prob),
+                                                  self.param_score,
+                                                  score)
+
 
         return score
-
-    ########
-    ## scoring method
-    def update_score(self):
-        score = sum(self.intent_obj_prob) + self.nr_score + \
-                sum(self.ref_score) + self.param_score
-
-        return score
-
-
-    #########
-    ## prepLex subtracts out the current counts for this particular referential word and referred object, so that this can be done once and then counts can be added for each pairing quickly and independently via the gibbs loop. (It's just factoring out a step that would have to be done by each iteration of the block gibbs).
-    def prep_lex(self, corpus, params, i):
-
-        # old object and word
-        old_o = corpus.sents[i][0][self.oi[i] == self.intent_obj[i]]
-        old_w = corpus.sents[i][1][self.wi[i] == self.ref_word[i]]
-
-        # now subtract their counts from the referential lexicon,
-        # but only if there was a referred object
-        if old_o.size > 0:
-            self.ref[old_o, old_w] -= 1
-            self.ref_score[old_o] = update_dm_minus(self.ref_score[old_o],
-                                                    self.ref[old_o, :][0],
-                                                    params.alpha_r,
-                                                    old_w)
-
-        # and add back to the non-referential lexicon,
-        # again only if there's a referring word
-        if old_w.size > 0:
-            self.non_ref[old_w] += 1
-            self.nr_score = update_dm_plus(self.nr_score,
-                                           self.non_ref,
-                                           params.alpha_nr,
-                                           old_w)
-
-        if self.verbose > 1:
-            print "\n --- prep lex ---"
-            print "        old = " + str(old_o) + " " + str(old_w) + " "
-
 
     #########
     ## hyperParamInf implements hyperparameter inference
@@ -762,3 +815,116 @@ class GibbsLexicon(Lexicon):
         self.score_full_lex(corpus, params)
 
         return params
+
+    #########
+    ## choose_class - does the selection step
+    def choose_class(self, scores):
+        new_scores = scores - scores.max()
+        ps = exp(new_scores)
+        ps = ps / sum(sum(ps))
+        cum_ps = reshape(cumsum(ps), shape(ps))
+
+        r = random()
+        i = where(cum_ps > r)[0][0]
+        j = where(cum_ps > r)[1][0]
+        s = scores[i, j]
+
+        # return tuple of indices for greater than
+        if self.verbose > 0:
+            print "\n*** choosing %d, %d, score: %2.2f" % (i, j, s)
+
+        return i, j, s
+
+    #########
+    ## little function to keep track of samples
+    def tick(self, s):
+        if self.verbose > 0:
+            print "\n*************** %d ***************" % s
+        else:
+            if mod(s, 80) == 0:
+                print "\n"
+            else:
+                sys.stdout.write(".")
+
+    ########
+    ## scoring method
+    def update_score(self, i):
+        if self.inference_method == "gibbs":
+            score = sum(self.intent_obj_prob) + self.nr_score + \
+                    sum(self.ref_score) + self.param_score
+        elif self.inference_method == "pf":
+            # note +1 here to get the range right for the pf
+            score = sum(self.intent_obj_prob[0:i + 1]) + self.nr_score + \
+                    sum(self.ref_score) + self.param_score
+
+        return score
+
+    #########
+    ## generic show method
+    def show(self):
+        print self.ref
+
+        if hasattr(self, 'non_ref'):
+            print "nr: " + str(self.non_ref)
+
+    #########
+    ## show_top_match: show nice matching entry
+    def show_top_match(self, corpus, world):
+        if corpus.corpus != False:
+            for o in range(world.n_objs):
+                if max(self.ref[o, :]) > 0:
+                    w = where(self.ref[o, :] == max(self.ref[o, :]))[0]
+                    print "object: %s, word: %s" % (world.objs_dict[o][0], world.words_dict[w[0]][0])
+        else:
+            for o in range(world.n_objs):
+                w = where(self.ref[o, :] == max(self.ref[o, :]))[0]
+                print "object: %d, word: %d" % (o, w)
+
+
+#################################################################
+##### Particle class is for the particle filter
+class Particle:
+    #########
+    ## initialize the particle
+    def __init__(self, lex, corpus, params):
+        # deepcopy the particular params we need from the base lexicon
+        field_list = ["ref", "non_ref",
+                      "intent_obj_probs", "intent_obj_prob",
+                      "ref_score", "nr_score",
+                      "oi", "wi", "verbose"]
+
+        for p in lex.__dict__.keys():
+            if p in field_list:
+                exec ( "self.%s = copy.deepcopy(lex.%s)" % (p, p)) in locals(), globals()
+
+        # bookkeeping
+        self.inference_method = "pf"
+        self.sample_scores = [0.0] * corpus.n_sents
+
+        # initialize each object to have been null
+        self.intent_obj = map(lambda x: len(x[0]), corpus.sents)
+        self.ref_word = map(lambda x: len(x[1]), corpus.sents)
+
+        # update all the scores
+        self.score_full_lex(corpus, params, init=False)
+
+    #########
+    ## prep_sent - adds non-ref counts for current sentence
+    def prep_sent(self,
+                  corpus, params, i):
+
+        ws = corpus.sents[i][1]
+        for w in ws:
+            self.non_ref[w] += 1
+            self.nr_score = update_dm_plus(self.nr_score, self.non_ref,
+                                           params.alpha_nr, w)  # index to make it float, not np.array
+
+    #########
+    ## other inherited methods from Lexicon class
+    score_lex = Lexicon.__dict__["score_lex"]
+
+    choose_class = Lexicon.__dict__["choose_class"]
+
+    score_full_lex = Lexicon.__dict__["score_full_lex"]
+
+    update_score = Lexicon.__dict__["update_score"]
