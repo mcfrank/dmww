@@ -44,3 +44,9 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# OSX Garbage
+.DS_Store
+
+# IPython notebook backups
+.ipynb_checkpoints
