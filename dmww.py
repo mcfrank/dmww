@@ -12,34 +12,35 @@ w = World(n_words=4,
 w.show()
 
 c = Corpus(w,
-           n_per_sent=2,
-           n_sents=40)
+           n_per_sent=3,
+           n_sents=100)
 c.show()
 
-p = Params(n_samps=200,
-           n_particles=1000,
+p = Params(n_samps=100,
+           n_particles=100,
            alpha_r=.1,
            alpha_nr=10,
            empty_intent=.0001,
            n_hypermoves=10)
 p.show()
 
-# print "\n\n****************************************** GIBBS SAMPLER ******"
-# seed(1)
-# l = Lexicon(c, p,
-#             verbose=.5,
-#             hyper_inf=True)
-#
-# l.learn_lex_gibbs(c, p)
-# l.params.show()
+print "\n\n****************************************** GIBBS SAMPLER ******"
+seed(1)
+l = Lexicon(c, p,
+            verbose=0,
+            hyper_inf=True)
+
+l.learn_lex_gibbs(c, p)
+l.params.show()
 
 print "\n\n****************************************** PARTICLE FILTER ******"
 seed(1)
 l = Lexicon(c, p,
-            verbose=1,
+            verbose=0,
             hyper_inf=False)
 
 l.learn_lex_pf(c, p)
+l.output_lex_pf(c, p)
 
 
 ## PROFILE CODE
