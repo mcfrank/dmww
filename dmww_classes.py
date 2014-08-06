@@ -1,6 +1,7 @@
 import numpy as np
 from sampling_helper import *
 from scipy.stats import gamma, beta
+from scipy.misc import logsumexp
 import sys as sys
 from corpus_helper import *
 import time
@@ -11,8 +12,13 @@ import matplotlib.gridspec as gridspec
 import pylab
 
 # todo:
-# x consider removing word failure process
 # - fix intent hyperparameter inference
+#   - figured out that empty intent hp inference messes everything up
+#     model converges to never talking about anything
+# - fix importance weights for particle filter
+
+# done
+# x consider removing word failure process
 
 ################################################################
 # The model
@@ -173,7 +179,7 @@ class Params:
                  alpha_r_hp=1,
                  alpha_nr_hp=2,
                  intent_hp_a=1,
-                 intent_hp_b=1,
+                 intent_hp_b=5,
                  n_hypermoves=5):
 
         # these are integers
@@ -204,9 +210,14 @@ class Params:
         for p in nps.__dict__.keys():
             exec ( "self.%s = nps.%s" % (p, p))
 
-        self.alpha_nr = alter_0inf_var(nps.alpha_nr)
-        self.alpha_r = alter_0inf_var(nps.alpha_r)
-        # self.empty_intent = alter_01_var(nps.empty_intent)
+        # choose between the three kinds of moves
+        r = random()
+        if r < .5:
+            self.alpha_nr = alter_0inf_var(nps.alpha_nr)
+        elif r < .5:
+            self.alpha_r = alter_0inf_var(nps.alpha_r)
+        # else:
+            # self.empty_intent = alter_01_var(nps.empty_intent)
 
         return nps
 
@@ -346,7 +357,7 @@ class Lexicon:
             pylab.xticks(np.arange(np.shape(hiwords)[0]) + .5, wordlabs)
             plt.setp(plt.xticks()[1], rotation=90, fontsize=fontsize)
 
-            #objs
+            #objss
             pylab.yticks(np.arange(world.n_objs) + .5, objlabs)
             plt.setp(plt.yticks()[1], fontsize=fontsize)
 
@@ -493,6 +504,7 @@ class Lexicon:
 
         for p in range(params.n_particles):
             self.particles.append(Particle(self, corpus, params))
+        self.reweight_particles(0)
 
         for i in range(corpus.n_sents):
             self.tick(i)  # keep track of samples
@@ -513,6 +525,7 @@ class Lexicon:
                 (j, k, p.sample_scores[i]) = p.choose_class(scores)
                 p.score_lex(corpus, params, i, j, k, 0)
 
+            self.reweight_particles(i)
             # if self.hyper_inf:
             #     params = self.hyper_param_inf(corpus, params, self.sample_scores[s])
             #     self.params = params
@@ -520,18 +533,19 @@ class Lexicon:
         refs = np.zeros((params.n_particles, corpus.world.n_objs, corpus.world.n_words))
         particle_scores = zeros(params.n_particles)
         for i, p in enumerate(self.particles):
-            # p.verbose = 1
-            p.score_full_lex(corpus, params, init=False)
             refs[i] = p.ref
-            particle_scores[i] = p.sample_scores[-1]
+            particle_scores[i] = p.weight
         best = np.where(particle_scores==max(particle_scores))[0][0]
+
+        print "\n**** BEST PARTICLE ****"
+
         self.particles[best].verbose = 2
         self.particles[best].score_full_lex(corpus, params, init=False)
 
         print "\n**** GRAND MEAN ****"
         print np.around(refs.mean(axis=0),decimals=2)
 
-        print "\n**** WEIGHTED MEAN ****"
+        print "\n**** IMPORTANCE WEIGHTED MEAN ****"
         particle_scores = exp(particle_scores - max(particle_scores))
         particle_scores /= sum(particle_scores)
         print "particle scores: " + str(np.around(particle_scores,decimals=2))
@@ -548,6 +562,32 @@ class Lexicon:
         # self.show()
         # self.params.show()
         # print "\n *** average sample time: %2.3f sec" % ((time.clock() - start_time) / params.n_samps)
+
+    #########
+    ## reweight_particles - do importance weights for all particles
+    ## fixme: very inefficient to store weights inside particles
+    def reweight_particles(self, s):
+
+        ws = []
+
+        # get weights out
+        for i in range(self.params.n_particles):
+            w = self.particles[i].weight
+
+            # now get transition score for this move
+            trans_score = self.particles[i].sample_scores[s] - self.particles[i].sample_scores[s-1]
+            w = w + trans_score
+
+            ws.append(w)
+
+        # normalize
+        ws = ws - logsumexp(ws)
+
+        # put weights back in
+        for i in range(self.params.n_particles):
+            self.particles[i].weight = ws[i]
+
+        print np.around(ws,decimals=2)
 
     #########
     ## score_lex - a more cached version of the scoring functions
@@ -594,7 +634,7 @@ class Lexicon:
         self.intent_obj_prob[i] = self.intent_obj_probs[i][j]
         score = self.update_score(i)
 
-        if verbose:
+        if verbose > 1:
             print "\n--- score lex: %d, %d ---" % (j, k)
             print "old o: " + str(old_o) + ", old w: " + str(old_w)
             print "new o: " + str(new_o) + ", new w: " + str(new_w)
@@ -678,7 +718,7 @@ class Lexicon:
         score = self.update_score(corpus.n_sents)
 
         # debugging stuff
-        if self.verbose > 0:
+        if self.verbose >= 1:
             print "\n--- score full lex ---"
             print self.ref
             print " " + str(self.non_ref)
@@ -705,7 +745,7 @@ class Lexicon:
                         corpus,
                         params,
                         score):
-        if self.verbose > 0:
+        if self.verbose >= 1:
             print "\n****** HP INFERENCE *******"
 
         for i in range(params.n_hypermoves):
@@ -713,6 +753,9 @@ class Lexicon:
                 print "\n--- current params ---"
                 params.show()
                 print "hyper param score:" + str(score)
+                print "    a_nr: " + str(gamma.logpdf(params.alpha_r, params.alpha_r_hp))
+                print "    a_r: " + str(gamma.logpdf(params.alpha_nr, params.alpha_nr_hp))
+                print "    empty_i: " + str(beta.logpdf(params.empty_intent, params.intent_hp_a, params.intent_hp_b))
 
             new_params = Params()
             new_params.propose_hyper_params(params)
@@ -724,13 +767,16 @@ class Lexicon:
                 print "--- new params ---"
                 new_params.show()
                 print "hyper param score:" + str(new_score)
+                print "    a_nr: " + str(gamma.logpdf(new_params.alpha_r, new_params.alpha_r_hp))
+                print "    a_r: " + str(gamma.logpdf(new_params.alpha_nr, new_params.alpha_nr_hp))
+                print "    empty_i: " + str(beta.logpdf(new_params.empty_intent, new_params.intent_hp_a, new_params.intent_hp_b))
 
             if new_score - score > 0:
                 params = new_params
             elif random() < exp(new_score - score):
                 params = new_params
 
-                if self.verbose > 0:
+                if self.verbose >= 1:
                     print "    hp change! - old = %2.2f, new = %2.2f" % (score, new_score)
 
         # now rescore with the new parameters - redundant if you didn't swap, FIXME
@@ -752,7 +798,7 @@ class Lexicon:
         s = scores[i, j]
 
         # return tuple of indices for greater than
-        if self.verbose > 0:
+        if self.verbose >= 1:
             print "\n*** choosing %d, %d, score: %2.2f" % (i, j, s)
 
         return i, j, s
@@ -760,8 +806,10 @@ class Lexicon:
     #########
     ## little function to keep track of samples
     def tick(self, s):
-        if self.verbose > 0:
+        if self.verbose >= 1:
             print "\n*************** %d ***************" % s
+        elif self.verbose > 0:
+            print str(self.sample_scores[s-1])
         else:
             if mod(s, 80) == 0:
                 print "\n"
@@ -819,6 +867,7 @@ class Particle:
             if p in field_list:
                 exec ( "self.%s = copy.deepcopy(lex.%s)" % (p, p)) in locals(), globals()
 
+
         # bookkeeping
         self.inference_method = "pf"
         self.sample_scores = [0.0] * corpus.n_sents
@@ -829,6 +878,9 @@ class Particle:
 
         # update all the scores
         self.score_full_lex(corpus, params, init=False)
+
+        # add a particle weight
+        self.weight = 1.0
 
     #########
     ## prep_sent - adds non-ref counts for current sentence

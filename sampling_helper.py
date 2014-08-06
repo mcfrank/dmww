@@ -25,7 +25,7 @@ def alter_0inf_var(ob):
 def alter_01_var(ob):
     nb = ob
 
-    nb = ob + inv_logit(gauss(0, 10))
+    nb = ob + inv_logit(gauss(-6, 2))
 
     # can't go below zero or above one
     if nb <= 0 or nb >= 1:

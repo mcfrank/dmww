@@ -16,26 +16,27 @@ c = Corpus(w,
            n_sents=40)
 c.show()
 
-p = Params(n_samps=10,
-           n_particles=10,
+p = Params(n_samps=200,
+           n_particles=1000,
            alpha_r=.1,
            alpha_nr=10,
            empty_intent=.0001,
-           n_hypermoves=5)
+           n_hypermoves=10)
 p.show()
 
-print "\n\n****************************************** GIBBS SAMPLER ******"
-seed(1)
-l = Lexicon(c, p,
-            verbose=0,
-            hyper_inf=False)
-
-l.learn_lex_gibbs(c, p)
+# print "\n\n****************************************** GIBBS SAMPLER ******"
+# seed(1)
+# l = Lexicon(c, p,
+#             verbose=.5,
+#             hyper_inf=True)
 #
+# l.learn_lex_gibbs(c, p)
+# l.params.show()
+
 print "\n\n****************************************** PARTICLE FILTER ******"
 seed(1)
 l = Lexicon(c, p,
-            verbose=0,
+            verbose=1,
             hyper_inf=False)
 
 l.learn_lex_pf(c, p)
