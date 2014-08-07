@@ -497,7 +497,8 @@ class Lexicon:
         ## similar to the gibbs
         def learn_lex_pf(self,
                          corpus,
-                         params):
+                         params,
+                         resample):
 
             # start_time = time.clock()
             self.inference_method = "pf"
@@ -505,8 +506,8 @@ class Lexicon:
             for p in range(params.n_particles):
                 self.particles.append(Particle(self, corpus, params))
 
-            self.weights = [1.0] * self.params.n_particles
-            self.reweight_particles(0)
+            self.weights = log(np.divide([1.0],self.params.n_particles)) * self.params.n_particles
+            # self.reweight_particles(0)
 
             for i in range(corpus.n_sents):
                 self.tick(i)  # keep track of samples
@@ -527,12 +528,11 @@ class Lexicon:
                     (j, k, p.sample_scores[i]) = p.choose_class(scores)
                     p.score_lex(corpus, params, i, j, k, 0)
 
-                self.reweight_particles(i)
+                # self.reweight_particles(i)
 
-                # resample when number of effective particles falls below N/2
-                if self.n_eff < self.params.n_particles / 2:
-                    self.systematic_resample_particles()
-
+                # # resample when number of effective particles falls below N/2
+                # if self.n_eff < self.params.n_particles / 2 and params.resample==True:
+                #     self.systematic_resample_particles()
 
                 # if self.hyper_inf:
                 #     params = self.hyper_param_inf(corpus, params, self.sample_scores[s])

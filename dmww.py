@@ -13,10 +13,10 @@ w.show()
 
 c = Corpus(w,
            n_per_sent=3,
-           n_sents=100)
+           n_sents=1000)
 c.show()
 
-p = Params(n_samps=100,
+p = Params(n_samps=1,
            n_particles=100,
            alpha_r=.1,
            alpha_nr=10,
@@ -39,7 +39,7 @@ l = Lexicon(c, p,
             verbose=0,
             hyper_inf=False)
 
-l.learn_lex_pf(c, p)
+l.learn_lex_pf(c, p, resample=False)
 l.output_lex_pf(c, p)
 
 
