@@ -5,9 +5,13 @@
 \usepackage{fullpage,rotating}
 \usepackage{pslatex}
 \usepackage{amssymb}
+\usepackage{accents}
+
 % \usepackage{synctex}
 
-\title{Learning word meaning by inferring speakers' intended referents: \\ An incremental approach to socially-guided statistical learning}
+\newcommand{\vect}[1]{\accentset{\rightharpoonup}{#1}}
+
+\title{Learning word meaning by inferring speakers' intentions: \\ An incremental approach to socially-guided statistical learning}
 
 \threeauthors{Michael C. Frank}{Molly L. Lewis}{Noah D. Goodman}
 \threeaffiliations{Department of Psychology, Stanford University}{Department of Psychology, Stanford University}{Department of Psychology, Stanford University}
@@ -23,7 +27,7 @@
 \noindent Please address correspondence to Michael C. Frank, Department of Psychology, Stanford University, 450 Serra Mall (Jordan Hall), Stanford, CA, 94305, tel: (650) 724-4003, email: \texttt{mcfrank@stanford.edu}.}
 
 
-\abstract{How do children learn word meanings?}
+\abstract{How do children learn the meanings of words? While some accounts suggest that word learning happens in a single moment, others privilege the gradual accumulation of information across time. Previous modeling work has attempted to unify these viewpoints in a single framework that allows for both in-the-moment interpretation and gradual statistical accumulation, but at the cost of substantial computational complexity. We describe a new, incremental model of this interaction, in which statistical associations are the product of in-the-moment interpretations. This process-level model successfully captures a number of experimental findings (including some that were not captured by previous, computational-level analyses) and suggests a number of extensions.}
 
 \begin{document}
 \maketitle                            
@@ -31,8 +35,18 @@
 
 \section{Introduction}
 
+How do children learn their first words? 
 
-\section{Model}
+
+\subsection{Prior modeling work}
+
+Early work on modeling cross-situational word learning. 
+An important cross-situational word learning was proposed by \citeA{siskind1996}; this model used a propositional representation of meaning in combination with a set of deductive rules to infer word-meaning mappings from artificial data. This ambitious model provided a powerful proof-of-concept, but was limited by the assumption that the propositional structure of meanings was observed by the learner. 
+
+\subsection{The current paper}
+
+
+\section{Modeling details}
 
 \subsection{Model Specification}
 \begin{figure}[tr]
@@ -93,7 +107,7 @@ P(L) = \prod_{o \in W}{P(L_{R_o})} + P(L_{NR}).
 % intention, referential slot, and word vector
 % for the referential word 
 
-$p(\arrow w | I, R, L_R, L_{NR}) = p(w|O_i) * prod_{s \in S - S_r} {P(W_s | L_{NR})}$
+$p(\vect{w} | I, R, L_R, L_{NR}) = p(w|O_i) * prod_{s \in S - S_r} {P(W_s | L_{NR})}$
 
 \subsection{Inference}
 \begin{figure}[tr]

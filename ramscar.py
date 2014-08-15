@@ -7,8 +7,8 @@ from dmww_classes import *
 
 seed(1)
 
-w = World(n_words=4,
-          n_objs=4)
+w = World(n_words=3,
+          n_objs=3)
 w.show()
 
 # AB 1
@@ -17,8 +17,13 @@ w.show()
 
 c = Corpus(w,
            n_per_sent=3,
-           n_sents=40)
+           n_sents=3)
 c.show()
+print c.sents
+c.sents = [[array([0,1]),array([0])],[array([1,2]),array([2])],[array([0,1,2]),array([1])]]
+c.show()
+print c.sents
+
 
 p = Params(n_samps=1,
            n_particles=1,
@@ -31,7 +36,7 @@ p.show()
 print "\n\n****************************************** GIBBS SAMPLER ******"
 seed(1)
 l = Lexicon(c, p,
-            verbose=0,
+            verbose=2,
             hyper_inf=True)
 
 l.learn_lex_gibbs(c, p)
