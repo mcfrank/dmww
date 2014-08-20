@@ -1,5 +1,5 @@
 from dmww_classes import *
-# from plotting_helper import *
+#from plotting_helper import *
 
 ################################################################
 # The model
@@ -11,16 +11,23 @@ w = World(n_words=3,
           n_objs=3)
 w.show()
 
+
 # AB 1
 # AC 2
 # ABC 3
 
 c = Corpus(w,
-           n_per_sent=3,
+           n_per_sent=2,
            n_sents=3)
 c.show()
 print c.sents
-c.sents = [[array([0,1]),array([0])],[array([1,2]),array([2])],[array([0,1,2]),array([1])]]
+#c.sents = [[array([0] ),array([0 ])],[array([1,2]),array([2 ])],[array([0,1]),array([1])]]
+
+#c.sents = [[array([0, NaN]),array([0,  NaN])],[array([1,2]),array([2,  NaN])],[array([0,1]),array([1,  NaN])]]
+#c.sents = [[array([0,1]),array([0,1])],[array([1,2]),array([2,1])],[array([0,1]),array([1,2])]]
+
+c.sents = [[array([0, 1] ),array([0])],[array([1,2]),array([2])],[array([0,1,2]),array([1])]]
+c.update_corpus()
 c.show()
 print c.sents
 
@@ -35,6 +42,7 @@ p.show()
 
 print "\n\n****************************************** GIBBS SAMPLER ******"
 seed(1)
+
 l = Lexicon(c, p,
             verbose=2,
             hyper_inf=True)
@@ -44,6 +52,7 @@ l.params.show()
 
 print "\n\n****************************************** PARTICLE FILTER ******"
 seed(1)
+
 l = Lexicon(c, p,
             verbose=0,
             hyper_inf=False)
