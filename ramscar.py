@@ -27,7 +27,7 @@ print c.sents
 #c.sents = [[array([0,1]),array([0,1])],[array([1,2]),array([2,1])],[array([0,1]),array([1,2])]]
 
 c.sents = [[array([0, 1] ),array([0])],[array([1,2]),array([2])],[array([0,1,2]),array([1])]]
-c.update_corpus()
+#c.update_corpus()
 c.show()
 print c.sents
 
