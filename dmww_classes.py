@@ -450,8 +450,7 @@ class Lexicon:
                 this_word = word_is[pair]
                 #loop over gold standard
                 if size(where((gs[:, 0] == this_obj) & (gs[:, 1] == this_word))) > 0:
-                    p_count = p_count
-                    1
+                    p_count += 1
 
             if (lex_num_mappings == 0):  #special case
                 precision = 0
