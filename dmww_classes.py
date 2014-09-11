@@ -552,26 +552,16 @@ class Lexicon:
             best = np.where(self.weights==max(self.weights))[0][0]
 
             print "\n**** BEST PARTICLE ****"
-
             self.particles[best].verbose = 2
             self.particles[best].score_full_lex(corpus, params, init=False)
 
             print "\n**** GRAND MEAN ****"
-            print np.around(refs.mean(axis=0),decimals=2)
+            self.ref = np.around(refs.mean(axis=0), decimals=2)
+            print self.ref
 
-            print "\n**** IMPORTANCE WEIGHTED MEAN ****"
-            print "particle scores: " + str(np.around(self.weights,decimals=2))
-            for i in range(params.n_particles):
-                refs[i] = multiply(refs[i],exp(self.weights[i]))
-            print np.around(refs.sum(axis=0),decimals=2)
+            # TODO average nonref lexicons and populate
+            # separate averaging and printing
 
-            self.ref = refs.sum(axis=0)
-            # self.posterior_lex = self.get_posterior_lex(lexs)
-            #   [p(s) r(s) f(s)] = computeLexiconF(lex,gold_standard);
-            # print "\n"
-            # self.show()
-            # self.params.show()
-            # print "\n *** average sample time: %2.3f sec" % ((time.clock() - start_time) / params.n_samps)
 
         #########
         ## reweight_particles - do importance weights for all particles
