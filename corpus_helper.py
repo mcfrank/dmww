@@ -17,7 +17,7 @@ def get_f(lex, gs_corpus):
     gs_num_mappings = shape(gs)[0]
 
     links = nonzero(lex)
-    obj_is =  links[0]
+    obj_is = links[0]
     word_is = links[1]
     lex_num_mappings = size(obj_is)
 

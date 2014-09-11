@@ -1,3 +1,4 @@
+
 from dmww_classes import *
 # from plotting_helper import *
 
@@ -10,10 +11,6 @@ seed(1)
 w = World(n_words=4,
           n_objs=4)
 w.show()
-
-# AB 1
-# AC 2
-# ABC 3
 
 c = Corpus(w,
            n_per_sent=3,

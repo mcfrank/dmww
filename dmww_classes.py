@@ -1,3 +1,4 @@
+
 import numpy as np
 from sampling_helper import *
 from scipy.stats import gamma, beta
@@ -48,7 +49,7 @@ class World:
                 all_objs.extend(str.split(raw_corpus[i][0]))
                 all_words.extend(str.split(raw_corpus[i][1]))
 
-            # now, create two dictionaries
+            # now, create two dictionaries (labels -> nums)
             u_objs = list(set(all_objs))
             self.n_objs = size(u_objs)
             self.objs_dict = list()
@@ -64,6 +65,24 @@ class World:
     def show(self):
         print "n_objs = " + str(self.n_objs)
         print "n_words = " + str(self.n_words)
+
+    # update the number of words and objects in world
+    def update(self, n_new, labels="none"):
+        # display indices of new objects and words
+        print "new object indices: " + str(range(self.n_objs, self.n_objs + n_new))[1:-1]
+        print "new word indices: " + str(range(self.n_words, self.n_words + n_new))[1:-1]
+
+        # update number of global objs and words
+        self.n_objs = self.n_objs + n_new
+        self.n_words = self.n_words + n_new
+
+        # update dictionaries
+        if labels == "none":
+            labels = ["Novel"] * n_new
+
+        for i in range(0, size(labels)):
+            self.objs_dict.append([labels[i], self.n_objs -1 + i])
+            self.words_dict.append([labels[i], self.n_words -1 + i])
 
 
 #################################################################
@@ -164,7 +183,11 @@ class Corpus:
         self.n_os = map(lambda x: len(x[0]), self.sents)
         self.n_ws = map(lambda x: len(x[1]), self.sents)
 
-
+    # must be called after hand-defined corpora
+    def update(self):
+        # keep track of number of words and objects in each sentence
+        self.n_os = map(lambda x: len(x[0]), self.sents)
+        self.n_ws = map(lambda x: len(x[1]), self.sents)
 
 
 #################################################################
@@ -344,7 +367,6 @@ class Lexicon:
                 fig = plt.figure(figsize=(.5 * np.shape(hiwords)[0], .9 * world.n_objs))
 
             gs = gridspec.GridSpec(2, 1, height_ratios=[9, 1])
-            fontsize = 1.5 * world.n_objs
 
             # plot referential lexicon
             ax1 = fig.add_subplot(gs[0])
@@ -352,20 +374,27 @@ class Lexicon:
 
             #add word and obj ticks
             if hasattr(world, 'words_dict'):
+                fontsize = 1.5 * world.n_objs
 
                 #word
                 pylab.xticks(np.arange(np.shape(hiwords)[0]) + .5, wordlabs)
                 plt.setp(plt.xticks()[1], rotation=90, fontsize=fontsize)
 
-                #objss
+                #objs
                 pylab.yticks(np.arange(world.n_objs) + .5, objlabs)
                 plt.setp(plt.yticks()[1], fontsize=fontsize)
 
             else:
-                ax1.set_xticks(np.arange(world.n_words) + .5)
-                ax1.set_xticklabels(np.arange(world.n_words), fontsize=fontsize)
-                ax1.set_yticks(np.arange(world.n_objs) + .5)
-                ax1.set_yticklabels(np.arange(world.n_objs), fontsize=fontsize)
+                #fontsize = 8 * world.n_objs
+                fontsize = 18
+
+                #word
+                pylab.xticks(np.arange(world.n_words) + .5, list(range(world.n_words)))
+                plt.setp(plt.xticks()[1], fontsize=fontsize)
+
+                #objs
+                pylab.yticks(np.arange(world.n_objs) + .5, list(range(world.n_objs)))
+                plt.setp(plt.yticks()[1], fontsize=fontsize)
 
             ax1.set_ylabel("objects", fontsize=fontsize + 5)
             ax1.set_title('main lexicon', fontsize=fontsize + 10)
