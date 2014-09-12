@@ -466,11 +466,11 @@ class Lexicon:
             except ValueError:
                 print "Recall or precision 0, could not compute f score."
             else:
-                print "precision: %2.2f " % precision
-                print "recall: %2.2f" % recall
-                print "f: %2.2f" % f
+#                print "precision: %2.2f " % precision
+#                print "recall: %2.2f" % recall
+#                print "f: %2.2f" % f
 
-                #return (precision, recall, f)
+                return (precision, recall, f)
 
         #########
         ## learnLex gets lexicon counts by gibbs sampling over the intended object/referring word
@@ -578,14 +578,15 @@ class Lexicon:
                 refs[i] = p.ref
 
             best = np.where(self.weights==max(self.weights))[0][0]
-
-            print "\n**** BEST PARTICLE ****"
-            self.particles[best].verbose = 2
-            self.particles[best].score_full_lex(corpus, params, init=False)
-
-            print "\n**** GRAND MEAN ****"
             self.ref = np.around(refs.mean(axis=0), decimals=2)
-            print self.ref
+
+            if self.verbose > 1:
+                print "\n**** BEST PARTICLE ****"
+                self.particles[best].verbose = 2
+                self.particles[best].score_full_lex(corpus, params, init=False)
+
+                print "\n**** GRAND MEAN ****"
+                print self.ref
 
             # TODO average nonref lexicons and populate
             # separate averaging and printing
