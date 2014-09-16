@@ -464,7 +464,8 @@ class Lexicon:
             try:
                 f = stats.hmean([precision, recall])
             except ValueError:
-                print "Recall or precision 0, could not compute f score."
+                if self.verbose >= 1:
+                    print "Recall or precision 0, could not compute f score."
             else:
 #                print "precision: %2.2f " % precision
 #                print "recall: %2.2f" % recall
@@ -515,9 +516,11 @@ class Lexicon:
             # print "\n"
             # self.show()
             # self.params.show()
-            self.verbose = 2
+
+            #self.verbose = 2
             self.score_full_lex(corpus, params, init=False)
-            print "\n *** average sample time: %2.3f sec" % ((time.clock() - start_time) / params.n_samps)
+            if self.verbose >= 1:
+                print "\n *** average sample time: %2.3f sec" % ((time.clock() - start_time) / params.n_samps)
 
 
         #########
