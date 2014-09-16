@@ -40,6 +40,11 @@ def maximize_score(world, lexicon):
         if score:
             scores[t] = score
     best_threshold = max(scores, key=lambda t: scores[t][2])
+
+    #    for obj in range(world.n_objs):
+#        wd = where(lexicon.ref[obj,:] == max(lexicon.ref[obj,:]))
+#        print "o: %s, w: %s" % (world.objs_dict[obj][0], world.words_dict[wd[0][0]][0])
+
     return best_threshold, scores[best_threshold]
 
 
@@ -47,11 +52,6 @@ def corpus_simulation(corpus_file, inference_algorithm, params):
 
     world = World(corpus=corpus_file)
     lexicon = learn_lexicon(world, corpus_file, inference_algorithm, params)
-
-#    for obj in range(world.n_objs):
-#        wd = where(lexicon.ref[obj,:] == max(lexicon.ref[obj,:]))
-#        print "o: %s, w: %s" % (world.objs_dict[obj][0], world.words_dict[wd[0][0]][0])
-
     return maximize_score(world, lexicon)
 
 
