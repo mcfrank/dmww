@@ -1,4 +1,4 @@
-import sys, getopt
+import getopt
 from dmww_classes import *
 
 
@@ -23,22 +23,15 @@ def learn_lexicon(world, corpus_file, inference_algorithm, params):
     return lexicon
 
 
-def evaluate(world, lexicon, threshold):
-
-    gs_file = 'corpora/gold_standard.csv'
-    c_gs = Corpus(world=world, corpus=gs_file)
-
-    return lexicon.get_f(c_gs, threshold)
-
-
 def maximize_score(world, lexicon):
 
     scores = {}
     threshold_opts = [float(t)/100 for t in xrange(101)]
-    for t in threshold_opts:
-        score = evaluate(world, lexicon, t)
+    gold = Corpus(world=world, corpus='corpora/gold_standard.csv')
+    for threshold in threshold_opts:
+        score = lexicon.get_f(gold, threshold)
         if score:
-            scores[t] = score
+            scores[threshold] = score
     best_threshold = max(scores, key=lambda t: scores[t][2])
     return best_threshold, scores[best_threshold]
 
@@ -48,11 +41,18 @@ def corpus_simulation(corpus_file, inference_algorithm, params):
     world = World(corpus=corpus_file)
     lexicon = learn_lexicon(world, corpus_file, inference_algorithm, params)
 
-#    for obj in range(world.n_objs):
-#        wd = where(lexicon.ref[obj,:] == max(lexicon.ref[obj,:]))
-#        print "o: %s, w: %s" % (world.objs_dict[obj][0], world.words_dict[wd[0][0]][0])
+    threshold, (p, r, f) = maximize_score(world, lexicon)
 
-    return maximize_score(world, lexicon)
+    lex = lexicon.ref
+    print shape(lex)
+    print sum(lex)
+    for obj in range(world.n_objs):
+        row_sums = lex.sum(axis=1)
+        wd = where(lex[obj,:] / row_sums[obj] > threshold)
+        for word in wd[0]:
+            print "o: %s, w: %s" % (world.objs_dict[obj][0], world.words_dict[word][0])
+
+    return threshold, (p, r, f)
 
 
 def main(argv):
@@ -64,7 +64,7 @@ def main(argv):
     empty_intent = 0.0001
 
     usage = "usage: dmww_testing.py -a <inference algorithm: gibbs or pf> -n <number of samples/particles>" \
-            "--alphaR <referential alpha> --alphaNR <non-referential alpha> --empty-intent <empty intent probability>"
+            "--alpha-r <referential alpha> --alpha-nr <non-referential alpha> --empty-intent <empty intent probability>"
 
     try:
         opts, args = getopt.getopt(argv, "ha:n:", ["alphaR=", "alphaNR=", "empty-intent="])
@@ -83,11 +83,11 @@ def main(argv):
         elif opt == "-n":
             n_samps = arg
             n_particles = arg
-        elif opt == "--alphaR":
+        elif opt == "--alpha-r":
             alpha_r = arg
-        elif opt == "--alphaNR":
+        elif opt == "--alpha-nr":
             alpha_nr = arg
-        elif opt == "--empty_intent":
+        elif opt == "--empty-intent":
             empty_intent = arg
     print "Inference algorithm:", inference_algorithm
     print "Number of samples/particles:", n_samps
@@ -103,8 +103,7 @@ def main(argv):
                     #n_hypermoves=5,
                     n_particles=n_particles)
 
-    t, results = corpus_simulation('corpora/corpus.csv', inference_algorithm, params)
-    p, r, f = results
+    t, (p, r, f) = corpus_simulation('corpora/corpus.csv', inference_algorithm, params)
     print "Threshold:", t
     print "Precision:", p
     print "Recall:", r
