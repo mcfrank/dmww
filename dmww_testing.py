@@ -2,72 +2,82 @@ import getopt
 from dmww_classes import *
 
 
-def learn_lexicon(world, corpus_file, inference_algorithm, params):
+class Simulation:
 
-    corpus = Corpus(world=world, corpus=corpus_file)
+    def __init__(self, corpus_file, inference_algorithm, lexicon_params):
+        self.alg = inference_algorithm
+        self.world = World(corpus=corpus_file)
+        self.corpus = Corpus(world=self.world, corpus=corpus_file)
+        self.gold = Corpus(world=self.world, corpus='corpora/gold_standard.csv')
+        self.params = lexicon_params
+        self.lexicon = Lexicon(self.corpus, self.params, verbose=0, hyper_inf=False)
+        self.filename = "simulations/samp%s_ref%s_nonref%s_empint%s" % (self.params.n_samps,
+                                                                        self.params.alpha_r,
+                                                                        self.params.alpha_nr,
+                                                                        self.params.empty_intent)
 
-    lexicon = Lexicon(corpus, params,
-                      verbose=0,
-                      hyper_inf=False)
-                      #hyper_inf=True)
+    def learn_lexicon(self):
+        if self.alg == 'gibbs':
+            self.lexicon.learn_lex_gibbs(self.corpus, self.params)
+        elif self.alg == 'pf':
+            self.lexicon.learn_lex_pf(self.corpus, self.params, resample=False)
+            self.lexicon.output_lex_pf(self.corpus, self.params)
 
-    if inference_algorithm == 'gibbs':
-        lexicon.learn_lex_gibbs(corpus, params)
-    elif inference_algorithm == 'pf':
-        lexicon.learn_lex_pf(corpus, params, resample=False)
-        lexicon.output_lex_pf(corpus, params)
-    else:
-        print "invalid inference algorithm"
-        return
-
-    return lexicon
-
-
-def maximize_score(world, lexicon):
-
-    scores = {}
-    threshold_opts = [float(t)/100 for t in xrange(101)]
-    gold = Corpus(world=world, corpus='corpora/gold_standard.csv')
-    for threshold in threshold_opts:
-        score = lexicon.get_f(gold, threshold)
-        if score:
-            scores[threshold] = score
-    best_threshold = max(scores, key=lambda t: scores[t][2])
-    return best_threshold, scores[best_threshold]
+    def maximize_score(self):
+        scores = {}
+        threshold_opts = [float(t)/100 for t in xrange(101)]
+        for threshold in threshold_opts:
+            score = self.lexicon.get_f(self.gold, threshold)
+            if score:
+                scores[threshold] = score
+        best_threshold = max(scores, key=lambda t: scores[t][2])
+        return best_threshold, scores[best_threshold]
 
 
-def corpus_simulation(corpus_file, inference_algorithm, params):
+    def run(self):
 
-    world = World(corpus=corpus_file)
-    lexicon = learn_lexicon(world, corpus_file, inference_algorithm, params)
+        self.write_file = open(self.filename+'.txt', 'a')
 
-    threshold, (p, r, f) = maximize_score(world, lexicon)
+        self.write_file.write("Parameters:\n")
+        self.write_file.write(str(self.lexicon.params))
+        self.write_file.write("\n\n")
 
-    lex = lexicon.ref
-    print shape(lex)
-    print sum(lex)
-    for obj in range(world.n_objs):
-        row_sums = lex.sum(axis=1)
-        wd = where(lex[obj,:] / row_sums[obj] > threshold)
-        for word in wd[0]:
-            print "o: %s, w: %s" % (world.objs_dict[obj][0], world.words_dict[word][0])
+        self.learn_lexicon()
+        threshold, (p, r, f) = self.maximize_score()
+        ref = self.lexicon.ref
 
-    return threshold, (p, r, f)
+        self.write_file.write("Lexicon:\n")
+        for obj in range(self.world.n_objs):
+            row_sums = ref.sum(axis=1)
+            links = where(ref[obj,:] / row_sums[obj] > threshold)
+            for word in links[0]:
+                self.write_file.write("o: %s, w: %s" % (self.world.objs_dict[obj][0], self.world.words_dict[word][0]))
+                self.write_file.write("\n")
+        self.write_file.write("\n\n")
+        self.write_file.write("Precision: %s\nRecall: %s\nF-score: %s\nThreshold: %s" % (p, r, f, threshold))
+
+        self.lexicon.plot_scores()
+        plt.savefig(self.filename + ".png")
+    #    lexicon.plot_lex(world)
+    #    plt.savefig("simulations/lex_samp%s_ref%s_nonref%s_empint%s.png" % (par.n_samps, par.alpha_r, par.alpha_nr, par.empty_intent))
+    #    plt.show()
+
+        self.write_file.close()
 
 
 def main(argv):
-    inference_algorithm = 'pf'
-    n_samps = 10
+    inference_algorithm = 'gibbs'
+    n_samps = 1
     n_particles = 10
     alpha_r = 0.1
     alpha_nr = 10
-    empty_intent = 0.0001
+    empty_intent = 0.01
 
     usage = "usage: dmww_testing.py -a <inference algorithm: gibbs or pf> -n <number of samples/particles>" \
             "--alpha-r <referential alpha> --alpha-nr <non-referential alpha> --empty-intent <empty intent probability>"
 
     try:
-        opts, args = getopt.getopt(argv, "ha:n:", ["alphaR=", "alphaNR=", "empty-intent="])
+        opts, args = getopt.getopt(argv, "ha:n:", ["alpha-r=", "alpha-nr=", "empty-intent="])
     except getopt.GetoptError:
         print usage
         sys.exit(2)
@@ -89,25 +99,15 @@ def main(argv):
             alpha_nr = arg
         elif opt == "--empty-intent":
             empty_intent = arg
-    print "Inference algorithm:", inference_algorithm
-    print "Number of samples/particles:", n_samps
-    print "Referential alpha:", alpha_r
-    print "Non-referential alpha:", alpha_nr
-    print "Empty intent probability:", empty_intent
-    print "--------------------------------------------------"
 
     params = Params(n_samps=n_samps,
                     alpha_r=alpha_r,
                     alpha_nr=alpha_nr,
                     empty_intent=empty_intent,
-                    #n_hypermoves=5,
                     n_particles=n_particles)
 
-    t, (p, r, f) = corpus_simulation('corpora/corpus.csv', inference_algorithm, params)
-    print "Threshold:", t
-    print "Precision:", p
-    print "Recall:", r
-    print "F-score:", f
+    sim = Simulation('corpora/corpus.csv', inference_algorithm, params)
+    sim.run()
 
 if __name__ == "__main__":
     main(sys.argv[1:])

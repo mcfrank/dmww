@@ -221,10 +221,14 @@ class Params:
         self.intent_hp_a = float(intent_hp_a)
         self.intent_hp_b = float(intent_hp_b)
 
+    def __str__(self):
+        return "\n".join(["%s: %2.4f" % (v, getattr(self, v)) for v in vars(self)])
+
     # for debugging
     def show(self):
-        for v in vars(self):
-            print "%s: %2.4f" % (v, getattr(self, v))
+        print self
+#        for v in vars(self):
+#            print "%s: %2.4f" % (v, getattr(self, v))
 
     #########
     ## propose_hyperparams

@@ -1,0 +1,42 @@
+pegasus:dmww mikabr$ python dmww_testing.py -a gibbs -n 100
+..................................................................................................
+intent_hp_b: 5.0000
+intent_hp_a: 1.0000
+n_particles: 100.0000
+empty_intent: 0.0100
+alpha_nr_hp: 2.0000
+alpha_r: 0.1000
+n_samps: 100.0000
+alpha_nr: 10.0000
+alpha_r_hp: 1.0000
+n_hypermoves: 5.0000
+o: mirror, w: david
+o: mirror, w: bunnyrabbit
+o: pig, w: pig
+o: duck, w: the
+o: girl, w: and
+o: lamb, w: lamb
+o: lamb, w: baa
+o: lamb, w: bumpba
+o: book, w: the
+o: hat, w: hat
+o: bunny, w: bunnies
+o: bunny, w: pretty
+o: bunny, w: mots
+o: sheep, w: sheep
+o: eyes, w: look
+o: woman, w: another
+o: woman, w: mommy
+o: kitty, w: a
+o: bear, w: bottle
+o: hand, w: yeah
+o: baby, w: meow
+o: dax, w: dax
+o: man, w: ours
+o: man, w: courtney
+o: boy, w: who
+o: cow, w: moocow
+o: face, w: set
+o: face, w: bottles
+o: bird, w: bigbird
+precision: 0.241379310345, recall: 0.205882352941, f-score: 0.222222222222 (threshold: 0.19)
