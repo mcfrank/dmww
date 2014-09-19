@@ -8,6 +8,7 @@ from corpus_helper import *
 import time
 import copy
 from random import *
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import pylab
