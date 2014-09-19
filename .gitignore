@@ -44,3 +44,6 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# mac folder crap
+.DS_Store
