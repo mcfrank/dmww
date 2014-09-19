@@ -79,6 +79,8 @@ def run_grid(alg_opts, n_opts, alpha_r_opts, alpha_nr_opts, empty_intent_opts):
                              'precision', 'recall', 'f-score', 'threshold'])
 
     for alg, n, ar, anr, ei in itertools.product(alg_opts, n_opts, alpha_r_opts, alpha_nr_opts, empty_intent_opts):
+        print 'Running simulation with algorithm %s and parameters n %s, alpha_r %s, alpha_nr %s, empty_intention %s' %\
+              (alg, n, ar, anr, ei)
         seed(1)
         params = Params(n_samps=n,
                         alpha_r=ar,
@@ -90,11 +92,11 @@ def run_grid(alg_opts, n_opts, alpha_r_opts, alpha_nr_opts, empty_intent_opts):
 
 
 def main():
-    alg_opts = ['gibbs']
-    n_opts = [1]
-    alpha_r_opts = [0.1]
-    alpha_nr_opts = [10]
-    empty_intent_opts = [0.001, 0.01]
+    alg_opts = ['gibbs', 'pf']
+    n_opts = [1, 10, 100]
+    alpha_r_opts = [0.1, 1.0, 10.0]
+    alpha_nr_opts = [0.1, 1.0, 10.0]
+    empty_intent_opts = [0.001, 0.01, 0.1]
     run_grid(alg_opts, n_opts, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
 
 main()
