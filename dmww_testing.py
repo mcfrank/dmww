@@ -90,17 +90,29 @@ def run_grid(data_file, alg, n_opts, alpha_r_opts, alpha_nr_opts, empty_intent_o
 
 def main():
 
-    n_opts = [1, 10, 100]
     alpha_r_opts = [0.1, 1.0, 10.0]
     alpha_nr_opts = [0.1, 1.0, 10.0]
     empty_intent_opts = [0.001, 0.01, 0.1]
 
-    results_gibbs = open('simulations/pilot_sims_gibbs.csv', 'a')
-    run_grid(results_gibbs, 'gibbs', n_opts, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
-    results_gibbs.close()
-    results_pf = open('simulations/pilot_sims_pf.csv', 'a')
-    run_grid(results_pf, 'pf', n_opts, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
-    results_pf.close()
+    results_gibbs_n1 = open('simulations/pilot_sims_gibbs_n1.csv', 'a')
+    run_grid(results_gibbs_n1, 'gibbs', 1, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
+    results_gibbs_n1.close()
+    results_gibbs_n10 = open('simulations/pilot_sims_gibbs_n10.csv', 'a')
+    run_grid(results_gibbs_n10, 'gibbs', 10, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
+    results_gibbs_n10.close()
+    results_gibbs_n100 = open('simulations/pilot_sims_gibbs_n100.csv', 'a')
+    run_grid(results_gibbs_n100, 'gibbs', 100, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
+    results_gibbs_n100.close()
+
+    results_pf_n1 = open('simulations/pilot_sims_pf_n1.csv', 'a')
+    run_grid(results_pf_n1, 'pf', 1, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
+    results_pf_n1.close()
+    results_pf_n10 = open('simulations/pilot_sims_pf_n10.csv', 'a')
+    run_grid(results_pf_n10, 'pf', 10, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
+    results_pf_n10.close()
+    results_pf_n100 = open('simulations/pilot_sims_pf_n100.csv', 'a')
+    run_grid(results_pf_n100, 'pf', 100, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
+    results_pf_n100.close()
 
 main()
 
