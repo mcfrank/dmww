@@ -4,22 +4,15 @@ from dmww_classes import *
 
 class Simulation:
 
-    def __init__(self, corpus_file, inference_algorithm, lexicon_params, results_writer):
+    def __init__(self, corpus_file, inference_algorithm, lexicon_params, data_writer):
         self.alg = inference_algorithm
         self.world = World(corpus=corpus_file)
         self.corpus = Corpus(world=self.world, corpus=corpus_file)
         self.gold = Corpus(world=self.world, corpus='corpora/gold_standard.csv')
         self.params = lexicon_params
         self.lexicon = Lexicon(self.corpus, self.params, verbose=0, hyper_inf=False)
-#        self.filename = "simulations/%s_samp%s_ref%s_nonref%s_empint%s" % (self.alg,
-#                                                                           self.params.n_samps,
-#                                                                           self.params.n_particles,
-#                                                                           self.params.alpha_r,
-#                                                                           self.params.alpha_nr,
-#                                                                           self.params.empty_intent)
         self.filename = 'simulations/' + str(id(self))
-        self.write_file = open(self.filename + '.txt', 'a')
-        self.results_writer = results_writer
+        self.data_writer = data_writer
 
     def learn_lexicon(self):
         if self.alg == 'gibbs':
@@ -35,69 +28,79 @@ class Simulation:
             score = self.lexicon.get_f(self.gold, threshold)
             if score:
                 scores[threshold] = score
-        best_threshold = max(scores, key=lambda x: scores[x][2])
+        best_threshold = max(scores, key=lambda t: scores[t][2])
         return best_threshold, scores[best_threshold]
 
     def run(self):
-
-        self.write_file.write('Parameters:\n')
-        self.write_file.write(str(self.lexicon.params))
-        self.write_file.write('\n\n')
 
         self.learn_lexicon()
         threshold, (p, r, f) = self.maximize_score()
         ref = self.lexicon.ref
 
-        self.write_file.write('Lexicon:\n')
+        self.data_writer.writerow([str(id(self)), self.alg, self.params.n_samps, self.params.n_particles,
+                                   self.params.alpha_r, self.params.alpha_nr, self.params.empty_intent,
+                                   p, r, f, threshold])
+
+        sim_file = open(self.filename + '.txt', 'a')
+        sim_file.write('Algorithm:' + self.alg)
+        sim_file.write('\n\n')
+
+        sim_file.write('Parameters:\n')
+        sim_file.write(str(self.lexicon.params))
+        sim_file.write('\n\n')
+
+        sim_file.write('Lexicon:\n')
         for obj in range(self.world.n_objs):
             row_sums = ref.sum(axis=1)
             links = where(ref[obj, :] / row_sums[obj] > threshold)
             for word in links[0]:
-                self.write_file.write('o: %s, w: %s' % (self.world.objs_dict[obj][0], self.world.words_dict[word][0]))
-                self.write_file.write('\n')
-        self.write_file.write('\n\n')
-        self.write_file.write('Precision: %s\nRecall: %s\nF-score: %s\nThreshold: %s' % (p, r, f, threshold))
+                sim_file.write('o: %s, w: %s' % (self.world.objs_dict[obj][0], self.world.words_dict[word][0]))
+                sim_file.write('\n')
+        sim_file.write('\n\n')
+
+        sim_file.write('Precision: %s\nRecall: %s\nF-score: %s\nThreshold: %s' % (p, r, f, threshold))
+        sim_file.close()
 
         self.lexicon.plot_scores()
         plt.savefig(self.filename + '_scores.png')
+        plt.close()
         #self.lexicon.plot_lex(self.world)
         #plt.savefig(self.filename + "_lex.png")
 
-        self.write_file.close()
 
-        self.results_writer.writerow([str(id(self)), self.alg, self.params.n_samps, self.params.n_particles,
-                                      self.params.alpha_r, self.params.alpha_nr, self.params.empty_intent,
-                                      p, r, f, threshold])
+def run_grid(data_file, alg, n_opts, alpha_r_opts, alpha_nr_opts, empty_intent_opts):
 
+    data_writer = csv.writer(data_file)
+    data_writer.writerow(['id', 'alg', 'n_samps', 'n_particles',
+                          'alpha_r', 'alpha_nr', 'empty_intent',
+                          'precision', 'recall', 'f-score', 'threshold'])
 
-def run_grid(alg_opts, n_opts, alpha_r_opts, alpha_nr_opts, empty_intent_opts):
-
-    results_file = open('simulations/pilot_sims.csv', 'a')
-    results_writer = csv.writer(results_file)
-    results_writer.writerow(['id', 'alg', 'n_samps', 'n_particles',
-                             'alpha_r', 'alpha_nr', 'empty_intent',
-                             'precision', 'recall', 'f-score', 'threshold'])
-
-    for alg, n, ar, anr, ei in itertools.product(alg_opts, n_opts, alpha_r_opts, alpha_nr_opts, empty_intent_opts):
-        print 'Running simulation with algorithm %s and parameters n %s, alpha_r %s, alpha_nr %s, empty_intention %s' %\
-              (alg, n, ar, anr, ei)
+    for n, ar, anr, ei in itertools.product(n_opts, alpha_r_opts, alpha_nr_opts, empty_intent_opts):
+        print '\nRunning simulation with algorithm %s and parameters n %s, alpha_r %s, alpha_nr %s, empty_intention %s'\
+              % (alg, n, ar, anr, ei)
         seed(1)
         params = Params(n_samps=n,
                         alpha_r=ar,
                         alpha_nr=anr,
                         empty_intent=ei,
                         n_particles=n)
-        sim = Simulation('corpora/corpus.csv', alg, params, results_writer)
+        sim = Simulation('corpora/corpus.csv', alg, params, data_writer)
         sim.run()
 
 
 def main():
-    alg_opts = ['gibbs', 'pf']
+
     n_opts = [1, 10, 100]
     alpha_r_opts = [0.1, 1.0, 10.0]
     alpha_nr_opts = [0.1, 1.0, 10.0]
     empty_intent_opts = [0.001, 0.01, 0.1]
-    run_grid(alg_opts, n_opts, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
+
+    results_gibbs = open('simulations/pilot_sims_gibbs.csv', 'a')
+    run_grid(results_gibbs, 'gibbs', n_opts, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
+    results_gibbs.close()
+    results_pf = open('simulations/pilot_sims_pf.csv', 'a')
+    run_grid(results_pf, 'pf', n_opts, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
+    results_pf.close()
 
 main()
 
