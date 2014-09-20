@@ -68,14 +68,14 @@ class Simulation:
         #plt.savefig(self.filename + "_lex.png")
 
 
-def run_grid(data_file, alg, n_opts, alpha_r_opts, alpha_nr_opts, empty_intent_opts):
+def run_grid(data_file, alg, n, alpha_r_opts, alpha_nr_opts, empty_intent_opts):
 
     data_writer = csv.writer(data_file)
     data_writer.writerow(['id', 'alg', 'n_samps', 'n_particles',
                           'alpha_r', 'alpha_nr', 'empty_intent',
                           'precision', 'recall', 'f-score', 'threshold'])
 
-    for n, ar, anr, ei in itertools.product(n_opts, alpha_r_opts, alpha_nr_opts, empty_intent_opts):
+    for ar, anr, ei in itertools.product(alpha_r_opts, alpha_nr_opts, empty_intent_opts):
         print '\nRunning simulation with algorithm %s and parameters n %s, alpha_r %s, alpha_nr %s, empty_intention %s'\
               % (alg, n, ar, anr, ei)
         seed(1)
