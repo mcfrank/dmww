@@ -68,97 +68,101 @@ class Simulation:
         #plt.savefig(self.filename + "_lex.png")
 
 
-def run_grid(data_file, alg, n, alpha_r_opts, alpha_nr_opts, empty_intent_opts):
+# def run_grid(data_file, alg, n, alpha_r_opts, alpha_nr_opts, empty_intent_opts):
+#
+#     data_writer = csv.writer(data_file)
+#     data_writer.writerow(['id', 'alg', 'n_samps', 'n_particles',
+#                           'alpha_r', 'alpha_nr', 'empty_intent',
+#                           'precision', 'recall', 'f-score', 'threshold'])
+#
+#     for ar, anr, ei in itertools.product(alpha_r_opts, alpha_nr_opts, empty_intent_opts):
+#         print '\nRunning simulation with algorithm %s and parameters n %s, alpha_r %s, alpha_nr %s, empty_intention %s'\
+#               % (alg, n, ar, anr, ei)
+#         seed(1)
+#         params = Params(n_samps=n,
+#                         alpha_r=ar,
+#                         alpha_nr=anr,
+#                         empty_intent=ei,
+#                         n_particles=n)
+#         sim = Simulation('corpora/corpus.csv', alg, params, data_writer)
+#         sim.run()
 
+
+# def main():
+#
+#     alpha_r_opts = [0.1, 1.0, 10.0]
+#     alpha_nr_opts = [0.1, 1.0, 10.0]
+#     empty_intent_opts = [0.001, 0.01, 0.1]
+#
+#     results_gibbs_n1 = open('simulations/pilot_sims_gibbs_n1.csv', 'a')
+#     run_grid(results_gibbs_n1, 'gibbs', 1, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
+#     results_gibbs_n1.close()
+#     results_gibbs_n10 = open('simulations/pilot_sims_gibbs_n10.csv', 'a')
+#     run_grid(results_gibbs_n10, 'gibbs', 10, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
+#     results_gibbs_n10.close()
+#     results_gibbs_n100 = open('simulations/pilot_sims_gibbs_n100.csv', 'a')
+#     run_grid(results_gibbs_n100, 'gibbs', 100, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
+#     results_gibbs_n100.close()
+#
+#     results_pf_n1 = open('simulations/pilot_sims_pf_n1.csv', 'a')
+#     run_grid(results_pf_n1, 'pf', 1, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
+#     results_pf_n1.close()
+#     results_pf_n10 = open('simulations/pilot_sims_pf_n10.csv', 'a')
+#     run_grid(results_pf_n10, 'pf', 10, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
+#     results_pf_n10.close()
+#     results_pf_n100 = open('simulations/pilot_sims_pf_n100.csv', 'a')
+#     run_grid(results_pf_n100, 'pf', 100, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
+#     results_pf_n100.close()
+
+#main()
+
+def main(argv):
+    inference_algorithm = 'pf'
+    n = 1
+    alpha_r = 0.1
+    alpha_nr = 10
+    empty_intent = 0.01
+
+    usage = "usage: dmww_testing.py -a <inference algorithm: gibbs or pf> -n <number of samples/particles> " \
+            "--alpha-r <referential alpha> --alpha-nr <non-referential alpha> --empty-intent <empty intent probability>"
+
+    try:
+        opts, args = getopt.getopt(argv, "ha:n:", ["alpha-r=", "alpha-nr=", "empty-intent="])
+    except getopt.GetoptError:
+        print usage
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print usage
+            sys.exit()
+        elif opt == "-a":
+            if arg != 'pf' and arg != 'gibbs':
+                print "Invalid inference algorithm, must be gibbs or pf."
+                sys.exit(2)
+            inference_algorithm = arg
+        elif opt == "-n":
+            n = arg
+        elif opt == "--alpha-r":
+            alpha_r = arg
+        elif opt == "--alpha-nr":
+            alpha_nr = arg
+        elif opt == "--empty-intent":
+            empty_intent = arg
+
+    params = Params(n_samps=n,
+                    alpha_r=alpha_r,
+                    alpha_nr=alpha_nr,
+                    empty_intent=empty_intent,
+                    n_particles=n)
+
+    data_file = open('simulations/%s_n%s.csv' % (inference_algorithm, n), 'a')
     data_writer = csv.writer(data_file)
     data_writer.writerow(['id', 'alg', 'n_samps', 'n_particles',
-                          'alpha_r', 'alpha_nr', 'empty_intent',
-                          'precision', 'recall', 'f-score', 'threshold'])
+                           'alpha_r', 'alpha_nr', 'empty_intent',
+                           'precision', 'recall', 'f-score', 'threshold'])
 
-    for ar, anr, ei in itertools.product(alpha_r_opts, alpha_nr_opts, empty_intent_opts):
-        print '\nRunning simulation with algorithm %s and parameters n %s, alpha_r %s, alpha_nr %s, empty_intention %s'\
-              % (alg, n, ar, anr, ei)
-        seed(1)
-        params = Params(n_samps=n,
-                        alpha_r=ar,
-                        alpha_nr=anr,
-                        empty_intent=ei,
-                        n_particles=n)
-        sim = Simulation('corpora/corpus.csv', alg, params, data_writer)
-        sim.run()
+    sim = Simulation('corpora/corpus.csv', inference_algorithm, params, data_writer)
+    sim.run()
 
-
-def main():
-
-    alpha_r_opts = [0.1, 1.0, 10.0]
-    alpha_nr_opts = [0.1, 1.0, 10.0]
-    empty_intent_opts = [0.001, 0.01, 0.1]
-
-    results_gibbs_n1 = open('simulations/pilot_sims_gibbs_n1.csv', 'a')
-    run_grid(results_gibbs_n1, 'gibbs', 1, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
-    results_gibbs_n1.close()
-    results_gibbs_n10 = open('simulations/pilot_sims_gibbs_n10.csv', 'a')
-    run_grid(results_gibbs_n10, 'gibbs', 10, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
-    results_gibbs_n10.close()
-    results_gibbs_n100 = open('simulations/pilot_sims_gibbs_n100.csv', 'a')
-    run_grid(results_gibbs_n100, 'gibbs', 100, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
-    results_gibbs_n100.close()
-
-    results_pf_n1 = open('simulations/pilot_sims_pf_n1.csv', 'a')
-    run_grid(results_pf_n1, 'pf', 1, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
-    results_pf_n1.close()
-    results_pf_n10 = open('simulations/pilot_sims_pf_n10.csv', 'a')
-    run_grid(results_pf_n10, 'pf', 10, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
-    results_pf_n10.close()
-    results_pf_n100 = open('simulations/pilot_sims_pf_n100.csv', 'a')
-    run_grid(results_pf_n100, 'pf', 100, alpha_r_opts, alpha_nr_opts, empty_intent_opts)
-    results_pf_n100.close()
-
-main()
-
-# def main(argv):
-#     inference_algorithm = 'gibbs'
-#     n_samps = 1
-#     n_particles = 10
-#     alpha_r = 0.1
-#     alpha_nr = 10
-#     empty_intent = 0.01
-#
-#     usage = "usage: dmww_testing.py -a <inference algorithm: gibbs or pf> -n <number of samples/particles>" \
-#             "--alpha-r <referential alpha> --alpha-nr <non-referential alpha> --empty-intent <empty intent probability>"
-#
-#     try:
-#         opts, args = getopt.getopt(argv, "ha:n:", ["alpha-r=", "alpha-nr=", "empty-intent="])
-#     except getopt.GetoptError:
-#         print usage
-#         sys.exit(2)
-#     for opt, arg in opts:
-#         if opt == '-h':
-#             print usage
-#             sys.exit()
-#         elif opt == "-a":
-#             if arg != 'pf' and arg != 'gibbs':
-#                 print "Invalid inference algorithm, must be gibbs or pf."
-#                 sys.exit(2)
-#             inference_algorithm = arg
-#         elif opt == "-n":
-#             n_samps = arg
-#             n_particles = arg
-#         elif opt == "--alpha-r":
-#             alpha_r = arg
-#         elif opt == "--alpha-nr":
-#             alpha_nr = arg
-#         elif opt == "--empty-intent":
-#             empty_intent = arg
-#
-#     params = Params(n_samps=n_samps,
-#                     alpha_r=alpha_r,
-#                     alpha_nr=alpha_nr,
-#                     empty_intent=empty_intent,
-#                     n_particles=n_particles)
-#
-#     sim = Simulation('corpora/corpus.csv', inference_algorithm, params)
-#     sim.run()
-
-#if __name__ == "__main__":
-#    main(sys.argv[1:])
+if __name__ == "__main__":
+   main(sys.argv[1:])
