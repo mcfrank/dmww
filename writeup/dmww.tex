@@ -27,7 +27,7 @@
 \noindent Please address correspondence to Michael C. Frank, Department of Psychology, Stanford University, 450 Serra Mall (Jordan Hall), Stanford, CA, 94305, tel: (650) 724-4003, email: \texttt{mcfrank@stanford.edu}.}
 
 
-\abstract{How do children learn the meanings of words? While some accounts suggest that word learning happens in a single moment, others privilege the gradual accumulation of information across time. Previous modeling work has attempted to unify these viewpoints in a single framework that allows for both in-the-moment interpretation and gradual statistical accumulation, but at the cost of substantial computational complexity. We describe a new, incremental model of this interaction, in which statistical associations are the product of in-the-moment interpretations. This process-level model successfully captures a number of experimental findings (including some that were not captured by previous, computational-level analyses) and suggests a number of extensions.}
+\abstract{How do children learn the meanings of words? While some accounts suggest that word learning happens in a single moment, others privilege the gradual accumulation of information across time. Previous modeling work has attempted to unify these viewpoints in a single framework that allows for both in-the-moment interpretation and gradual statistical accumulation, but at the cost of substantial computational complexity. We describe a new, incremental model of this interaction, in which statistical associations are the product of in-the-moment interpretations. This process-level model successfully captures a number of experimental findings and suggests a number of extensions.}
 
 \begin{document}
 \maketitle                            
@@ -80,7 +80,7 @@ Taken together, the models presented by \citeA{frank2009}, \citeA{fazly2010}, an
 \section{Model}
 
 
-In the sections that follow, we describe the formal specification of our model as well as two inference algorithms---a batch Gibbs sampler and an incremental particle filter. As will become clear, these two inference algorithms are deeply related to one another. All code and data for the model and simulations reported below are available at \url{http://github.com/mcfrank/dmww}. 
+In the sections that follow, we describe the formal specification of our model as well as two inference algorithms---a batch Gibbs sampler and an incremental particle filter---that are focused around referential interpretation. As will become clear, these two inference algorithms are deeply related to one another. All code and data for the model and simulations reported below are available at \url{http://github.com/mcfrank/dmww}. 
 
 \subsection{Model Specification}
 
@@ -118,7 +118,7 @@ P( I, L | W, O) \propto P(W, O | I, L) P(I, L).
 \end{equation}
 
 
-\noindent Objects $O$ are observed in the context, however, so can be removed. In addition, for simplicity, we assume that there is a uniform prior over possible intentions (though we return to this issue in the Discussion). Again by the generative model in Figure \ref{fig:genmod}, the remaining expression can be factored as follows:
+\noindent Objects $O$ are observed in the context, however, so are constant and can be removed. In addition, for simplicity, we assume that there is a uniform prior over possible intentions (though we return to this issue in the Discussion). Again by the generative model in Figure \ref{fig:genmod}, the remaining expression can be factored as follows:
 
 \begin{equation}
 P( I, L | W, O) \propto P(W | I, L) P(I | O) P(I) P(L).
@@ -129,7 +129,6 @@ Here is where our current model diverges from that of \citeA{frank2009}. In that
 \begin{equation}
 P( I| W, O) \propto \int_L{P(W | I, L) P(I | O) P(I)  P(L) }
 \end{equation}
-
 
 Similarly to the previous work, we define the lexicon $L$ as consisting of two separate parts. The referential lexicon $L_R$ is a set of integrated Dirichlet-Multinomial distributions, one for each object in the world. This distribution represents the posterior probability of a particular word, relative to that object. The non-referential lexicon $L_{NR}$ is an independent Dirichlet-Multinomial distribution that captures the use of other words that do not refer in the current context.
 
@@ -149,10 +148,11 @@ P(L) = \prod_{o \in W}{P(L_{R_o})} + P(L_{NR}).
 $p(\vect{w} | I, R, L_R, L_{NR}) = p(w|O_i) * prod_{s \in S - S_r} {P(W_s | L_{NR})}$
 
 \subsection{Inference}
-\begin{figure}[tr]
+
+\begin{figure}[H]
 \begin{center}
-\includegraphics[width=6.5in]{figures/inference_diagram.pdf}
-\caption{\label{fig:inference_diagram} Caption.}
+\includegraphics[width=6.25in]{figures/inference_diagram.pdf}
+\caption{\label{fig:inference_diagram} A schematic of the model's evolving internal states when applied to a simple corpus with three contexts (marked $T=1,2,3$). States are shown for the particle filter inference algorithm with a single particle. Show at the top are the referential and non-referential lexicons (for simplicity, only the words ``pig'' and ``dog'' are shown in the referential lexicon). In the middle, the model's guesses about the referential correspondence between words and objects are shown for each situation.}
 \end{center}
 \end{figure}
 
