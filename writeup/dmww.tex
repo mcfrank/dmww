@@ -82,7 +82,23 @@ Taken together, the models presented by \citeA{frank2009}, \citeA{fazly2010}, an
 
 In the sections that follow, we describe the formal specification of our model as well as two inference algorithms---a batch Gibbs sampler and an incremental particle filter---that are focused around referential interpretation. As will become clear, these two inference algorithms are deeply related to one another. All code and data for the model and simulations reported below are available at \url{http://github.com/mcfrank/dmww}. 
 
-\subsection{Model Specification}
+
+%%%%%
+%;;for reference, a church version of the dmww generative model... 
+%(define words '(A B C D E F G H))
+%
+%(define lex (DPmem 1.0 (lambda (obj) (uniform-draw words))))
+%;; (define lex (mem (lambda (obj) (make-dirichlet-multinomial langsize))))
+%
+%(define (sentence objs numwords) 
+%  (define intent (uniform-draw objs))
+%  (define ref (sample-integer (+ 1 numwords))) ;;ref = numwords+1 is if nothing is referential
+%  (map (lambda (index)
+%         (if (= index ref)
+%             (lex intent)
+%             (lex 'nonref)))
+%       (range 0 (- numwords 1))))
+%%%%%
 
 \begin{figure}[tr]
 \begin{center}
@@ -91,38 +107,63 @@ In the sections that follow, we describe the formal specification of our model a
 \end{center}
 \end{figure}
 
-The schematic word learning situation is shown in Figure \ref{fig:setup}. The learner is hypothesized to make joint inferences in each situation about the speaker's referential intention $I$ and the lexicon of their language $L$, in the context $C$. These guesses are informed the elements of the context, the words $W$ that the speaker utters and the relevant referents (objects $O$) that are present in the situation. 
+The schematic word learning situation is shown in Figure \ref{fig:setup}. The learner is hypothesized to jointly infer the speaker's referential intention, $I$, and the lexicon of their language, $L$. These inferences are informed by the elements of the context, $C$: the words, $W$, that the speaker utters, the relevant referents (objects $O$) that are present in the situation, and potentially auxiliary social cues.
 
+\subsection{The generative model}
+
+A sketch of the generative model is shown in Figure \ref{fig:genmod}. We will write $\vec{W}$ for all utterances across contexts, $W^{i}$ for the utterance in the $i$th context, and $W^{i}_{j}$ for its $j$th word; similar for other variables.
 
 \begin{figure}[tr]
 \begin{center}
 \includegraphics[width=1.5in]{figures/gen_mod.pdf}
-\caption{\label{fig:genmod} The generative model assumed in both \protect\citeA{frank2009} and our current work. The plate over contexts indicates that objects, words, and referential intentions are present in each context, while the lexicon stays constant across contexts.}
+\caption{\label{fig:genmod} The generative model assumed in our current work, similar to \protect\citeA{frank2009}. The plate over contexts indicates that objects, words, and referential intentions are present in each context, while the lexicon stays constant across contexts.}
 \end{center}
 \end{figure}
 
-The learner can jointly infer $I$ and $L$ using Bayes' rule:
-
+Our primary departure from \cite{frank2009} is to assume that the lexicon places a distribution over all words for each object, rather than being a discrete association from objects to words. That is, we smooth the previous model by allowing some probability that an unusual word is used to refer to an object. Formally we assume each the lexical entry for each object (type) is a distribution over words drawn from a symmetric Dirichlet distribution:
 \begin{equation}
-P( I, L | C) \propto P(C | I, L ) P(I, L).
+L_{ob} \sim \text{Dirichlet}(\alpha)
+\end{equation}
+Where $ob$ can be any object in the world and can also be the special ``object'' $NR$, which accounts for all non-referential words. %note: should we talk about them as objects or categories?
+The words themselves will be drawn below from multinomial distributions with parameters determined by $L_{ob}$.
+
+Following \cite{frank2009} we assume that speakers have simple intentions to refer to objects in the context. For current purposes we simplify by assuming speakers intend to refer to only one object, and that they will refer to each possible object with equal probability. Thus $I^{i} \in O^{i}$ and
+$P(I^{i}| O^{i}) = \frac{1}{|O^{i}|}$.
+
+We next assume that speakers realize their intention by deciding which word in the utterance should be the referring word, generating this word appropriately using the lexicon, and then generating ``non-referring'' words for the remainder of the utterance. \footnote{This is a departure from \cite{frank2009} where it was assumed that each word might refer to an object independent of whether anther word also referred to that object. That is, here we assume that the pressure to refer can be ``satisfied'' by one word, leaving the other words to play other (non-referential) roles.}
+That is, for an utterance of $N$ words there is a variable $r^{i} \in \{1\dots N+1\}$ that determines which word realizes the referential intention. 
+Words are then drawn from either the distribution specified by the lexicon for the intention object or the $NR$ non-referential item:
+\begin{equation}
+W^{i}_{j} \sim 
+\begin{cases}
+\text{Multinomial}(L_{I^{i}}) & \text{if } r^{i}=j \\
+\text{Multinomial}(L_{NR}) & \text{else}
+\end{cases}
+\end{equation}
+Note that there is a chance that $r^{i}=N+1$ and as a result \emph{no} word in the utterance is referring.
+%note: do we need to give P(W^{i}_{j}|...) or is the stat notation enough?
+
+The words in the utterance are independent given $r^{i}$, $I^{i}$, and $L$, hence:
+\begin{equation}
+P(W^{i}|r^{i}, I^{i}, L) = \prod_{j=1..N}P(W^{i}_{j}|r^{i}, I^{i}, L)
 \end{equation}
 
-\noindent Because of the structure of the generative model shown in Figure \ref{fig:genmod}, we can replace contexts $C$ with the words and objects that constitute them:
 
-% \begin{equation}
-% P( I| W, O) \propto P(W | I, O) P(I).
-% \end{equation}
+\subsection{Learning at the computational level}
 
+We assume that the words, $\vec{W}$, and objects, $\vec{O}$, are fully observed, and hence the problem for the learner is to infer the lexicon, $L$, and the intentions and referential words, $\vec{I}$ and $\vec{r}$.
+
+The learner can jointly infer $\vec{I}$ and $L$ using Bayes' rule:
 \begin{equation}
-P( I, L | W, O) \propto P(W, O | I, L) P(I, L).
+P( \vec{I}, L | \vec{W}, \vec{O}) \propto P(\vec{W}| \vec{I}, L, \vec{O} )  P(\vec{I},L | \vec{O}).
+\end{equation}
+%
+Because of the independence structure of the generative model shown in Figure \ref{fig:genmod}:
+\begin{equation}
+P( \vec{I}, L | \vec{W}, \vec{O}) \propto P(\vec{W}| \vec{I}, L )  P(\vec{I} | \vec{O}) P(L).
 \end{equation}
 
-
-\noindent Objects $O$ are observed in the context, however, so are constant and can be removed. In addition, for simplicity, we assume that there is a uniform prior over possible intentions (though we return to this issue in the Discussion). Again by the generative model in Figure \ref{fig:genmod}, the remaining expression can be factored as follows:
-
-\begin{equation}
-P( I, L | W, O) \propto P(W | I, L) P(I | O) P(I) P(L).
-\end{equation}
+% for simplicity, we assume that there is a uniform prior over possible intentions (though we return to this issue in the Discussion). 
 
 Here is where our current model diverges from that of \citeA{frank2009}. In that work, we integrated across referential intentions and focused primarily on inferring the meanings of words in the absence of further interpretive information. In contrast, in the current model we focus on the process of incremental interpretation, and treat the lexicon as a byproduct of the process of interpretation. Accordingly, we integrate over all possible lexicons:
 
@@ -147,7 +188,9 @@ P(L) = \prod_{o \in W}{P(L_{R_o})} + P(L_{NR}).
 
 $p(\vect{w} | I, R, L_R, L_{NR}) = p(w|O_i) * prod_{s \in S - S_r} {P(W_s | L_{NR})}$
 
-\subsection{Inference}
+
+
+\subsection{Learning at the process level}
 
 \begin{figure}[H]
 \begin{center}
