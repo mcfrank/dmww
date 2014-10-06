@@ -6,10 +6,15 @@
 \usepackage{pslatex}
 \usepackage{amssymb}
 \usepackage{accents}
+\usepackage{xcolor}
+
 
 % \usepackage{synctex}
 
 \newcommand{\vect}[1]{\accentset{\rightharpoonup}{#1}}
+
+\newcommand{\nnote}[1]{\textcolor{blue}{[#1]}}
+
 
 \title{Learning word meaning by inferring speakers' intentions: \\ An incremental approach to socially-guided statistical learning}
 
@@ -124,11 +129,12 @@ Our primary departure from \cite{frank2009} is to assume that the lexicon places
 \begin{equation}
 L_{ob} \sim \text{Dirichlet}(\alpha)
 \end{equation}
-Where $ob$ can be any object in the world and can also be the special ``object'' $NR$, which accounts for all non-referential words. %note: should we talk about them as objects or categories?
+Where $ob$ can be any object in the world and can also be the special ``object'' $NR$, which accounts for all non-referential words. \nnote{should we talk about them as objects or categories?}
 The words themselves will be drawn below from multinomial distributions with parameters determined by $L_{ob}$.
 
 Following \cite{frank2009} we assume that speakers have simple intentions to refer to objects in the context. For current purposes we simplify by assuming speakers intend to refer to only one object, and that they will refer to each possible object with equal probability. Thus $I^{i} \in O^{i}$ and
 $P(I^{i}| O^{i}) = \frac{1}{|O^{i}|}$.
+\nnote{This is where we put social cues.. either intention directly depends on social cues, $P(I^{i}| O^{i},S^{i})$, or social cues depend on intention, which still leads to a distribution on intentions that depends on social cues.}
 
 We next assume that speakers realize their intention by deciding which word in the utterance should be the referring word, generating this word appropriately using the lexicon, and then generating ``non-referring'' words for the remainder of the utterance. \footnote{This is a departure from \cite{frank2009} where it was assumed that each word might refer to an object independent of whether anther word also referred to that object. That is, here we assume that the pressure to refer can be ``satisfied'' by one word, leaving the other words to play other (non-referential) roles.}
 That is, for an utterance of $N_{i}$ words there is a variable $r^{i} \in \{1,\dots,N_{i}, \emptyset \}$ that determines which word realizes the referential intention. The probability that $r^{i}=\emptyset$ (i.e.~no word realizes the referential intention) is a fixed constant, and $r^{i}$ has equal probability for the other words.
@@ -141,7 +147,7 @@ W^{i}_{j} \sim
 \end{cases}
 \end{equation}
 Note that for any $j$, $\emptyset \neq j$ and as a result \emph{no} word in the utterance is referring when $r^{i}=\emptyset$.
-%note: do we need to give P(W^{i}_{j}|...) or is the stat notation enough?
+\nnote{do we need to give $P(W^{i}_{j}|...)$ or is the stats notation enough?}
 
 The words in the utterance are independent given $r^{i}$, $I^{i}$, and $L$, hence:
 \begin{equation}
@@ -151,35 +157,58 @@ P(W^{i}|r^{i}, I^{i}, L) = \prod_{j=1..N}P(W^{i}_{j}|r^{i}, I^{i}, L)
 
 \subsection{Learning at the computational level}
 
-We assume that the words, $\vec{W}$, and objects, $\vec{O}$, are fully observed, and hence the problem for the learner is to infer the lexicon, $L$, and the intentions and referential words, $\vec{I}$ and $\vec{r}$.
+We assume that the words, $\vec{W}$, and objects, $\vec{O}$, are fully observed in the learning contexts, and hence the problem for the learner is to infer the lexicon, $L$, and the intentions and referential words, $\vec{I}$ and $\vec{r}$. By Bayes' rule:
+$$
+P( \vec{I}, \vec{r}, L | \vec{W}, \vec{O}) \propto P(\vec{W}| \vec{I}, \vec{r}, L, \vec{O} )  P(\vec{I},\vec{r},L | \vec{O}).
+$$
+By assumption $\vec{W}$ depends on the context only through the intention, $\vec{I}$, while $\vec{R}$ and $L$ are a priori independent of the other variables. In addition, inferences in different contexts are independent, given $L$, hence:
+\begin{eqnarray}
+P( \vec{I}, \vec{r}, L | \vec{W}, \vec{O}) &\propto& P(\vec{W}| \vec{I}, \vec{r}, L ) P(\vec{I} | \vec{O}) P(\vec{r})P(L) \\
+&\propto& P(L) \prod_{i} P(W^{i}| I^{i}, r^{i}, L ) P(I^{i} | O^{i}) P(r^{i})
+\end{eqnarray}
 
-%Notes to myself: set up the learning problem of jointly inferring L,I,r, but then point out that it is only the predictive discs that really matter. Then make sure to point out that the distribution on L screens off I,r from predictions. Also point out that L has conjugate prior, so that if you knew I,r you have closed form for predictive P(w|o)... Use chain rule to write the distribution over next I,r in terms of previous observations?
+
+While the learner must jointly consider intentions and lexical meanings, it is only the posterior on lexica, $P(L|\vec{W},\vec{O})$, that impacts future language use or learning (that is, $L$ screens off previous contextual variables form future). Thus, the task of the learner in the moment can be seen as integrating out the contextual variables (and then updating lexicon beliefs): $P(L|\vec{W},\vec{O}) = \sum_{\vec{I}, \vec{r}} P( \vec{I}, \vec{r}, L | \vec{W}, \vec{O})$. We next describe two algorithmic, sampling-based strategies for integrating the context variables.
+
+
+\subsection{Sequential learning}
+
+Imagine that we know the posterior on lexica for some amount of learning data,  $P(L|\vec{W},\vec{O})$, and then observe an additional context, $w$ and $o$. The full posterior can be written as:
+$$
+P(L|\vec{W},\vec{O}, w, o) \propto P(w|o,L)P(L|\vec{W},\vec{O}).
+$$
+
+\nnote{ok, now we need to talk about sampling... where does conjugacy go?}
+
+Thus, we construct a learner who focusses on interpreting the intention, $I$, and it's realization, $r$, in the moment, but uses these inferences to update beliefs about the lexicon, $L$, and it is these updated lexical beliefs that get carried forward into the future.
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=6.25in]{figures/inference_diagram.pdf}
+\caption{\label{fig:inference_diagram} A schematic of the model's evolving internal states when applied to a simple corpus with three contexts (marked $T=1,2,3$). States are shown for the particle filter inference algorithm with a single particle. Show at the top are the referential and non-referential lexicons (for simplicity, only the words ``pig'' and ``dog'' are shown in the referential lexicon). In the middle, the model's guesses about the referential correspondence between words and objects are shown for each situation.}
+\end{center}
+\end{figure}
 
 
 
-The learner can jointly infer $\vec{I}$ and $L$ using Bayes' rule:
-\begin{equation}
-P( \vec{I}, L | \vec{W}, \vec{O}) \propto P(\vec{W}| \vec{I}, L, \vec{O} )  P(\vec{I},L | \vec{O}).
-\end{equation}
-%
-Because of the independence structure of the generative model shown in Figure \ref{fig:genmod}:
-\begin{equation}
-P( \vec{I}, L | \vec{W}, \vec{O}) \propto P(\vec{W}| \vec{I}, L )  P(\vec{I} | \vec{O}) P(L).
-\end{equation}
+\subsection{Batch learning}
+
+In the full generative model the contexts are exchangeable: the order of contexts doesn't impact the overall probability. This means that we could always pretend a particular context was the last one. This idea gives rise to the \emph{Gibbs sampling} strategy: rather than building a sample incrementally as above, start with any assignment of context variables and then update by selecting a context, pretending it is the last, and sampling using Equation XX.
+
 
 % for simplicity, we assume that there is a uniform prior over possible intentions (though we return to this issue in the Discussion). 
-
-Here is where our current model diverges from that of \citeA{frank2009}. In that work, we integrated across referential intentions and focused primarily on inferring the meanings of words in the absence of further interpretive information. In contrast, in the current model we focus on the process of incremental interpretation, and treat the lexicon as a byproduct of the process of interpretation. Accordingly, we integrate over all possible lexicons:
-
-\begin{equation}
-P( I| W, O) \propto \int_L{P(W | I, L) P(I | O) P(I)  P(L) }
-\end{equation}
-
-Similarly to the previous work, we define the lexicon $L$ as consisting of two separate parts. The referential lexicon $L_R$ is a set of integrated Dirichlet-Multinomial distributions, one for each object in the world. This distribution represents the posterior probability of a particular word, relative to that object. The non-referential lexicon $L_{NR}$ is an independent Dirichlet-Multinomial distribution that captures the use of other words that do not refer in the current context.
-
-\begin{equation}
-P(L) = \prod_{o \in W}{P(L_{R_o})} + P(L_{NR}).
-\end{equation}
+%
+%Here is where our current model diverges from that of \citeA{frank2009}. In that work, we integrated across referential intentions and focused primarily on inferring the meanings of words in the absence of further interpretive information. In contrast, in the current model we focus on the process of incremental interpretation, and treat the lexicon as a byproduct of the process of interpretation. Accordingly, we integrate over all possible lexicons:
+%
+%\begin{equation}
+%P( I| W, O) \propto \int_L{P(W | I, L) P(I | O) P(I)  P(L) }
+%\end{equation}
+%
+%Similarly to the previous work, we define the lexicon $L$ as consisting of two separate parts. The referential lexicon $L_R$ is a set of integrated Dirichlet-Multinomial distributions, one for each object in the world. This distribution represents the posterior probability of a particular word, relative to that object. The non-referential lexicon $L_{NR}$ is an independent Dirichlet-Multinomial distribution that captures the use of other words that do not refer in the current context.
+%
+%\begin{equation}
+%P(L) = \prod_{o \in W}{P(L_{R_o})} + P(L_{NR}).
+%\end{equation}
 
  
 
@@ -190,33 +219,25 @@ P(L) = \prod_{o \in W}{P(L_{R_o})} + P(L_{NR}).
 % intention, referential slot, and word vector
 % for the referential word 
 
-$p(\vect{w} | I, R, L_R, L_{NR}) = p(w|O_i) * prod_{s \in S - S_r} {P(W_s | L_{NR})}$
+%$p(\vect{w} | I, R, L_R, L_{NR}) = p(w|O_i) * prod_{s \in S - S_r} {P(W_s | L_{NR})}$
 
-
-
-\subsection{Learning at the process level}
-
-\begin{figure}[H]
-\begin{center}
-\includegraphics[width=6.25in]{figures/inference_diagram.pdf}
-\caption{\label{fig:inference_diagram} A schematic of the model's evolving internal states when applied to a simple corpus with three contexts (marked $T=1,2,3$). States are shown for the particle filter inference algorithm with a single particle. Show at the top are the referential and non-referential lexicons (for simplicity, only the words ``pig'' and ``dog'' are shown in the referential lexicon). In the middle, the model's guesses about the referential correspondence between words and objects are shown for each situation.}
-\end{center}
-\end{figure}
-
-\subsubsection{Batch inference using a gibbs sampler}
-
-\begin{equation}
-P_t(L|W_{1...t}, O_{1...t}) \propto P_{t-1}(L | ...) P(W_t, I_t, R_t | L)
-\end{equation}
-
-% prob of a particular sample under Dir-M is the same thing as the conjugate 
-% so you just get the conjugate update for each of the assignments 
-
-\subsubsection{Incremental inference using a particle filter}
-
-\begin{equation}
-P_t(L|W_{1...t}, O_{1...t}) \propto P_{t-1}(L | ...) P(I_t | W_t, O_t)
-\end{equation}
+%\subsection{Learning at the process level}
+%
+%
+%\subsubsection{Batch inference using a gibbs sampler}
+%
+%\begin{equation}
+%P_t(L|W_{1...t}, O_{1...t}) \propto P_{t-1}(L | ...) P(W_t, I_t, R_t | L)
+%\end{equation}
+%
+%% prob of a particular sample under Dir-M is the same thing as the conjugate 
+%% so you just get the conjugate update for each of the assignments 
+%
+%\subsubsection{Incremental inference using a particle filter}
+%
+%\begin{equation}
+%P_t(L|W_{1...t}, O_{1...t}) \propto P_{t-1}(L | ...) P(I_t | W_t, O_t)
+%\end{equation}
 
 \section{Simulations}
 
