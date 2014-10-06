@@ -131,7 +131,7 @@ Following \cite{frank2009} we assume that speakers have simple intentions to ref
 $P(I^{i}| O^{i}) = \frac{1}{|O^{i}|}$.
 
 We next assume that speakers realize their intention by deciding which word in the utterance should be the referring word, generating this word appropriately using the lexicon, and then generating ``non-referring'' words for the remainder of the utterance. \footnote{This is a departure from \cite{frank2009} where it was assumed that each word might refer to an object independent of whether anther word also referred to that object. That is, here we assume that the pressure to refer can be ``satisfied'' by one word, leaving the other words to play other (non-referential) roles.}
-That is, for an utterance of $N$ words there is a variable $r^{i} \in \{1\dots N+1\}$ that determines which word realizes the referential intention. 
+That is, for an utterance of $N_{i}$ words there is a variable $r^{i} \in \{1,\dots,N_{i}, \emptyset \}$ that determines which word realizes the referential intention. The probability that $r^{i}=\emptyset$ (i.e.~no word realizes the referential intention) is a fixed constant, and $r^{i}$ has equal probability for the other words.
 Words are then drawn from either the distribution specified by the lexicon for the intention object or the $NR$ non-referential item:
 \begin{equation}
 W^{i}_{j} \sim 
@@ -140,7 +140,7 @@ W^{i}_{j} \sim
 \text{Multinomial}(L_{NR}) & \text{else}
 \end{cases}
 \end{equation}
-Note that there is a chance that $r^{i}=N+1$ and as a result \emph{no} word in the utterance is referring.
+Note that for any $j$, $\emptyset \neq j$ and as a result \emph{no} word in the utterance is referring when $r^{i}=\emptyset$.
 %note: do we need to give P(W^{i}_{j}|...) or is the stat notation enough?
 
 The words in the utterance are independent given $r^{i}$, $I^{i}$, and $L$, hence:
@@ -152,6 +152,10 @@ P(W^{i}|r^{i}, I^{i}, L) = \prod_{j=1..N}P(W^{i}_{j}|r^{i}, I^{i}, L)
 \subsection{Learning at the computational level}
 
 We assume that the words, $\vec{W}$, and objects, $\vec{O}$, are fully observed, and hence the problem for the learner is to infer the lexicon, $L$, and the intentions and referential words, $\vec{I}$ and $\vec{r}$.
+
+%Notes to myself: set up the learning problem of jointly inferring L,I,r, but then point out that it is only the predictive discs that really matter. Then make sure to point out that the distribution on L screens off I,r from predictions. Also point out that L has conjugate prior, so that if you knew I,r you have closed form for predictive P(w|o)... Use chain rule to write the distribution over next I,r in terms of previous observations?
+
+
 
 The learner can jointly infer $\vec{I}$ and $L$ using Bayes' rule:
 \begin{equation}
