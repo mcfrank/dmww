@@ -127,6 +127,7 @@ A sketch of the generative model is shown in Figure \ref{fig:genmod}. We will wr
 
 Our primary departure from \citeA{frank2009} is to assume that the lexicon places a distribution over all words for each object, rather than being a discrete association from objects to words. That is, we smooth the previous model by allowing some probability that an unusual word is used to refer to an object. Formally we assume each the lexical entry for each object (type) is a distribution over words drawn from a symmetric Dirichlet distribution:
 \begin{equation}
+\label{eqn:lexprior}
 L_{ob} \sim \text{Dirichlet}(\alpha)
 \end{equation}
 Where $ob$ can be any object in the world and can also be the special ``object'' $NR$, which accounts for all non-referential words.\footnote{We continue to discuss the model as linking words with \emph{objects}, rather than with \emph{concepts}. \citeA{lewis2013b} describes the generalization of a related model to learning category generalizations. Since the data we consider here are annotated for objects rather than concepts, the difference is purely rhetorical; but concepts are clearly the right units of generalization for future work.}
@@ -161,26 +162,45 @@ We assume that the words, $\vec{W}$, and objects, $\vec{O}$, are fully observed 
 $$
 P( \vec{I}, \vec{r}, L | \vec{W}, \vec{O}) \propto P(\vec{W}| \vec{I}, \vec{r}, L, \vec{O} )  P(\vec{I},\vec{r},L | \vec{O}).
 $$
-By assumption $\vec{W}$ depends on the context only through the intention, $\vec{I}$, while $\vec{R}$ and $L$ are a priori independent of the other variables. In addition, inferences in different contexts are independent, given $L$, hence:
+By assumption $\vec{W}$ depends on the context only through the intention, $\vec{I}$, while $\vec{R}$ and $L$ are \emph{a priori} independent of the other variables. In addition, inferences in different contexts are independent, given $L$, hence:
 \begin{eqnarray}
 P( \vec{I}, \vec{r}, L | \vec{W}, \vec{O}) &\propto& P(\vec{W}| \vec{I}, \vec{r}, L ) P(\vec{I} | \vec{O}) P(\vec{r})P(L) \\
 &\propto& P(L) \prod_{i} P(W^{i}| I^{i}, r^{i}, L ) P(I^{i} | O^{i}) P(r^{i})
 \end{eqnarray}
 
 
-While the learner must jointly consider intentions and lexical meanings, it is only the posterior on lexica, $P(L|\vec{W},\vec{O})$, that impacts future language use or learning (that is, $L$ screens off previous contextual variables from future instances of those variables). Thus, the task of the learner in the moment can be seen as integrating out the contextual variables (and then updating lexicon beliefs): $P(L|\vec{W},\vec{O}) = \sum_{\vec{I}, \vec{r}} P( \vec{I}, \vec{r}, L | \vec{W}, \vec{O})$. We next describe two algorithmic, sampling-based strategies for integrating the context variables.
+While the learner must jointly consider intentions and lexical meanings, it is only the posterior on lexica, $P(L|\vec{W},\vec{O})$, that impacts future language use or learning (that is, $L$ screens offprevious contextual variables from future instances of those variables). Thus, the task of the learner in the moment can be seen as integrating out the contextual variables (and then updating lexicon beliefs): $P(L|\vec{W},\vec{O}) = \sum_{\vec{I}, \vec{r}} P( \vec{I}, \vec{r}, L | \vec{W}, \vec{O})$. We next describe two algorithmic, sampling-based strategies for the context variables.
 
 
 \subsection{Sequential learning}
 
 Imagine that we know the posterior on lexica for some amount of learning data,  $P(L|\vec{W},\vec{O})$, and then observe an additional context, $w$ and $o$. The full posterior can be written as:
-$$
-P(L|\vec{W},\vec{O}, w, o) \propto P(w|o,L)P(L|\vec{W},\vec{O}).
-$$
+\begin{eqnarray}
+P(L|\vec{W},\vec{O}, w, o) &\propto& P(w|o,L)P(L|\vec{W},\vec{O}) \\
+\label{eqn:incrementalsum} &\propto&  \sum_{I,r} P(w,I,r|o,L) P(L|\vec{W},\vec{O})
+\end{eqnarray}
+We take the policy of approximating the summand of Equation \ref{eqn:incrementalsum} with a single sample from the distribution on $I,r$.\footnote{Iteratively sampling the context variables also yields a sample from the distribution on these variables across contexts. Since this is a form of sequential importance sampling the proof is standard. \nnote{I kind of punted here... do we need to show that this is a sample from the posterior explicitly?}} 
+This simplifies the calculation required.
+The initial prior, Equation \ref{eqn:lexprior}, on the lexicon entries $L_{ob}$ is Dirichlet; because Dirichlet is the conjugate prior to the multinomial distribution on words, the posterior, given an $I$ and $r$, will also be Dirichlet \cite{somethingOnConjugacy}. If we approximate the posterior by a single sample of $I$ and $r$ in each context then the distribution on lexica remains Dirichet throughout. 
 
-\nnote{ok, now we need to talk about sampling... where does conjugacy go?}
+ That is, if we assume $P(L_{ob}|\vec{W},\vec{O})$ is distributed as Dirichlet with pseudo-count of word $k$ from object $ob$ being $c^{ob}_{k}$, then the posterior will be Dirichlet with counts updated appropriately: for true objects
+$$
+c'^{ob}_{k} = c^{ob}_{k} + \delta_{w_{r}=k},
+$$
+% <<<<<<< HEAD
 
-Thus, we construct a learner who focusses on interpreting the intention, $I$, and its realization, $r$, in the moment, but uses these inferences to update beliefs about the lexicon, $L$, and it is these updated lexical beliefs that get carried forward into the future.
+% \nnote{ok, now we need to talk about sampling... where does conjugacy go?}
+
+% Thus, we construct a learner who focusses on interpreting the intention, $I$, and its realization, $r$, in the moment, but uses these inferences to update beliefs about the lexicon, $L$, and it is these updated lexical beliefs that get carried forward into the future.
+% =======
+and for the non-reference ``object''
+$$
+c'^{NR}_{k} = c^{NR}_{k} + \sum_{j \in \{1,\dots,|w|\} \setminus r} \delta_{w_{j}=k}.
+$$
+This closed form update means that we can easily sample $I$ and $r$ in the next context (by doing this update for each possible $I,r$ and normalizing) and then update the posterior on lexica; iterating through all learning contexts in this way yields a sample from the distribution on lexica conditioned on all the learning evidence.
+%
+Thus, we construct learning algorithm that focusses on interpreting the intention, $I$, and it's realization, $r$, in the moment, but uses these inferences to update beliefs about the lexicon, $L$, and it is these updated lexical beliefs that get carried forward into the future. \nnote{should walk through an example ala figure \ref{fig:inference_diagram}.}
+% >>>>>>> 02fa590148b237bb2f667c368498950207d3fbb7
 
 \begin{figure}[H]
 \begin{center}
@@ -193,7 +213,9 @@ Thus, we construct a learner who focusses on interpreting the intention, $I$, an
 
 \subsection{Batch learning}
 
-In the full generative model the contexts are exchangeable: the order of contexts doesn't impact the overall probability. This means that we could always pretend a particular context was the last one. This idea gives rise to the \emph{Gibbs sampling} strategy: rather than building a sample incrementally as above, start with any assignment of context variables and then update by selecting a context, pretending it is the last, and sampling using Equation XX.
+In the full generative model the contexts are exchangeable: the order of contexts doesn't impact the overall probability. This means that we could always pretend a particular context was the last one. This idea gives rise to the \emph{Gibbs sampling} strategy: rather than building a sample incrementally as above, start with any assignment of $\vec{I}$ and $\vec{r}$ and then update by selecting a context, pretending it is the last, removing its counts and then re-sampling using the update described above. Sweeping through contexts updating in this way yields a Markov chain Monte Carlo sampling algorithm---independent of were we start the context variables, they will converge to a sample from the correct posterior.
+
+\nnote{if we want to make the point that batch and incremental aren't so different, we should point out that the key property that let us derive both is that contexts (i.e. I and r) are independent given lexica, L. the conjugacy business just gives us a clean closed form for the, evolving, posterior on L. where should this discussion go?}
 
 
 % for simplicity, we assume that there is a uniform prior over possible intentions (though we return to this issue in the Discussion). 
