@@ -1,43 +1,54 @@
-import getopt, csv, itertools
+import getopt
+import csv
+import itertools
+import pickle
+import numpy as np
+import uuid
 from dmww_classes import *
 
 
 class Simulation:
 
-    def __init__(self, corpus_file, inference_algorithm, lexicon_params, data_writer):
+    def __init__(self, corpus_file, inference_algorithm, lexicon_params, burn_samps, data_writer):
+
+        self.id = uuid.uuid4()
         self.alg = inference_algorithm
         self.world = World(corpus=corpus_file)
         self.corpus = Corpus(world=self.world, corpus=corpus_file)
-        self.gold = Corpus(world=self.world, corpus='corpora/gold_standard.csv')
         self.params = lexicon_params
+        self.burn_samps = burn_samps
         self.lexicon = Lexicon(self.corpus, self.params, verbose=0, hyper_inf=False)
-        self.filename = 'simulations/' + str(id(self))
+
+        self.filename = 'simulations/' + str(self.id)
         self.data_writer = data_writer
 
     def learn_lexicon(self):
         if self.alg == 'gibbs':
             self.lexicon.learn_lex_gibbs(self.corpus, self.params)
+            ref = np.mean(self.lexicon.refs[self.burn_samps:], axis=0)
+            nonref = np.mean(self.lexicon.nonrefs[self.burn_samps:], axis=0)
+            return ref, nonref
         elif self.alg == 'pf':
             self.lexicon.learn_lex_pf(self.corpus, self.params, resample=False)
             self.lexicon.output_lex_pf(self.corpus, self.params)
+            return self.lexicon.ref, self.lexicon.nonref
 
-    def maximize_score(self):
-        scores = {}
-        threshold_opts = [float(t)/100 for t in xrange(101)]
-        for threshold in threshold_opts:
-            score = self.lexicon.get_f(self.gold, threshold)
-            if score:
-                scores[threshold] = score
-        best_threshold = max(scores, key=lambda t: scores[t][2])
-        return best_threshold, scores[best_threshold]
+#    def maximize_score(self):
+#        scores = {}
+#        threshold_opts = [float(t)/100 for t in xrange(101)]
+#        for threshold in threshold_opts:
+#            score = self.lexicon.get_f(self.gold, threshold)
+#            if score:
+#                scores[threshold] = score
+#        best_threshold = max(scores, key=lambda t: scores[t][2])
+#        return best_threshold, scores[best_threshold]
 
     def run(self):
 
-        self.learn_lexicon()
-        threshold, (p, r, f) = self.maximize_score()
-        ref = self.lexicon.ref
+        ref, nonref = self.learn_lexicon()
+        threshold, (p, r, f) = self.lexicon.get_max_f(ref, self.corpus)
 
-        self.data_writer.writerow([str(id(self)), self.alg, self.params.n_samps, self.params.n_particles,
+        self.data_writer.writerow([str(self.id), self.alg, self.params.n_samps, self.params.n_particles,
                                    self.params.alpha_r, self.params.alpha_nr, self.params.empty_intent,
                                    p, r, f, threshold])
 
@@ -63,6 +74,8 @@ class Simulation:
 
         self.lexicon.plot_scores()
         plt.savefig(self.filename + '_scores.png')
+        self.lexicon.plot_fscores()
+        plt.savefig(self.filename + '_fscore.png')
         plt.close()
         #self.lexicon.plot_lex(self.world)
         #plt.savefig(self.filename + "_lex.png")
@@ -117,20 +130,27 @@ class Simulation:
 #main()
 
 def main(argv):
-    inference_algorithm = 'pf'
-    n = 1
-    alpha_r = 0.1
-    alpha_nr = 10
-    empty_intent = 0.01
+    inference_algorithm = None
+    n = None
+    alpha_r = None
+    alpha_nr = None
+    empty_intent = None
+    burn_samps = None
 
-    usage = "usage: dmww_testing.py -a <inference algorithm: gibbs or pf> -n <number of samples/particles> " \
-            "--alpha-r <referential alpha> --alpha-nr <non-referential alpha> --empty-intent <empty intent probability>"
+    usage = "usage: dmww_testing.py " \
+            "-a <inference algorithm: gibbs or pf> " \
+            "-n <number of samples/particles> " \
+            "-b <number of burn-in samples> " \
+            "--alpha-r <referential alpha> " \
+            "--alpha-nr <non-referential alpha> " \
+            "--empty-intent <empty intent probability>"
 
     try:
-        opts, args = getopt.getopt(argv, "ha:n:", ["alpha-r=", "alpha-nr=", "empty-intent="])
+        opts, args = getopt.getopt(argv, "ha:n:b:", ["alpha-r=", "alpha-nr=", "empty-intent="])
     except getopt.GetoptError:
         print usage
         sys.exit(2)
+    print opts
     for opt, arg in opts:
         if opt == '-h':
             print usage
@@ -141,13 +161,15 @@ def main(argv):
                 sys.exit(2)
             inference_algorithm = arg
         elif opt == "-n":
-            n = arg
+            n = int(arg)
+        elif opt == "-b":
+            burn_samps = int(arg)
         elif opt == "--alpha-r":
-            alpha_r = arg
+            alpha_r = float(arg)
         elif opt == "--alpha-nr":
-            alpha_nr = arg
+            alpha_nr = float(arg)
         elif opt == "--empty-intent":
-            empty_intent = arg
+            empty_intent = float(arg)
 
     params = Params(n_samps=n,
                     alpha_r=alpha_r,
@@ -161,7 +183,8 @@ def main(argv):
                            'alpha_r', 'alpha_nr', 'empty_intent',
                            'precision', 'recall', 'f-score', 'threshold'])
 
-    sim = Simulation('corpora/corpus.csv', inference_algorithm, params, data_writer)
+    seed(1)
+    sim = Simulation('corpora/corpus.csv', inference_algorithm, params, burn_samps, data_writer)
     sim.run()
 
 if __name__ == "__main__":

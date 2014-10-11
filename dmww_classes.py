@@ -291,6 +291,9 @@ class Lexicon:
 
             # for gibbs, otherwise unused
             self.sample_scores = [None] * params.n_samps
+            self.sample_fscores = [None] * params.n_samps
+            self.refs = [None] * params.n_samps
+            self.nonrefs = [None] * params.n_samps
 
             # for pf, otherwise unused
             self.particles = []
@@ -327,6 +330,14 @@ class Lexicon:
             plt.xlabel('sample')
             plt.ylabel('sample score')
             plt.title('Lexicon score over time')
+            return ax
+
+        def plot_fscores(self):
+            fig, ax = plt.subplots()
+            ax.plot(np.arange(len(self.sample_fscores)), self.sample_fscores, '-')
+            plt.xlabel('sample')
+            plt.ylabel('sample f-score')
+            plt.title('Lexicon f-score over time')
             return ax
 
         #########
@@ -430,14 +441,14 @@ class Lexicon:
 
         #########
         ##  get_f scores the lexicon based on some threshold
-        def get_f(self, corpus, threshold, lex_eval="ref"):
+        def get_f(self, lex, corpus, threshold): #, lex_eval="ref"):
             gs = squeeze(asarray(corpus.gs))
             gs_num_mappings = shape(gs)[0]
 
-            if lex_eval == "ref":
-                lex = self.ref
-            else:
-                lex = self.non_ref
+#            if lex_eval == "ref":
+#                lex = self.ref
+#            else:
+#                lex = self.non_ref
 
             #threshold lexicon by normalizing across words (each row)
             row_sums = lex.sum(axis=1)
@@ -478,6 +489,20 @@ class Lexicon:
 
                 return (precision, recall, f)
 
+        def get_max_f(self, lex, corpus): #, lex_eval="ref"):
+            scores = {}
+            threshold_opts = [float(t)/100 for t in xrange(101)]
+            for threshold in threshold_opts:
+                score = self.get_f(lex, corpus, threshold) #, lex_eval)
+                if score:
+                    scores[threshold] = score
+            best_threshold = max(scores, key=lambda t: scores[t][2])
+            return best_threshold, scores[best_threshold]
+
+        def write_state(self):
+            pass
+
+
         #########
         ## learnLex gets lexicon counts by gibbs sampling over the intended object/referring word
         ## the heart of this function is the loop over possible lexicons based on changing the scores
@@ -490,7 +515,7 @@ class Lexicon:
             self.inference_method = "gibbs"
             self.init_gibbs(corpus, params)
 
-            lexs = nans([corpus.world.n_objs, corpus.world.n_words, params.n_samps])
+#            lexs = nans([corpus.world.n_objs, corpus.world.n_words, params.n_samps])
             start_time = time.clock()
 
             for s in range(params.n_samps):
@@ -510,7 +535,12 @@ class Lexicon:
                     # now choose the class and reassign
                     (j, k, self.sample_scores[s]) = self.choose_class(scores)
                     self.score_lex(corpus, params, i, j, k, 0)
-                    lexs[:, :, s] = copy.deepcopy(self.ref)
+#                    lexs[:, :, s] = copy.deepcopy(self.ref)
+
+                self.refs[s] = copy.deepcopy(self.ref)
+                self.nonrefs[s] = copy.deepcopy(self.non_ref)
+                self.write_state()
+#                self.sample_fscores[s] = self.get_max_f(corpus)[1][2]
 
                 if self.hyper_inf:
                     params = self.hyper_param_inf(corpus, params, self.sample_scores[s])
@@ -866,11 +896,11 @@ class Lexicon:
                 print "\n*************** %d ***************" % s
             elif self.verbose > 0:
                 print str(self.sample_scores[s-1])
-            else:
-                if mod(s, 80) == 0:
-                    print "\n"
-                else:
-                    sys.stdout.write(".")
+#            else:
+#                if mod(s, 80) == 0:
+#                    print "\n"
+#                else:
+#                    sys.stdout.write(".")
 
         ########
         ## scoring method
