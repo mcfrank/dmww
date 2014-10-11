@@ -12,6 +12,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import pylab
+import pickle
 
 # todo:
 # - fix intent hyperparameter inference
@@ -499,17 +500,13 @@ class Lexicon:
             best_threshold = max(scores, key=lambda t: scores[t][2])
             return best_threshold, scores[best_threshold]
 
-        def write_state(self):
-            pass
-
-
         #########
         ## learnLex gets lexicon counts by gibbs sampling over the intended object/referring word
         ## the heart of this function is the loop over possible lexicons based on changing the scores
         ## this is technically a block gibbs over objects and words (indexed by j and k)
         def learn_lex_gibbs(self,
-                      corpus,
-                      params):
+                            corpus,
+                            params):
 
             # initialize for gibbs
             self.inference_method = "gibbs"
@@ -539,7 +536,6 @@ class Lexicon:
 
                 self.refs[s] = copy.deepcopy(self.ref)
                 self.nonrefs[s] = copy.deepcopy(self.non_ref)
-                self.write_state()
 #                self.sample_fscores[s] = self.get_max_f(corpus)[1][2]
 
                 if self.hyper_inf:

@@ -1,37 +1,42 @@
 import getopt
-import csv
-import itertools
-import pickle
-import numpy as np
 import uuid
+import pickle
+import os
 from dmww_classes import *
 
 
 class Simulation:
 
-    def __init__(self, corpus_file, inference_algorithm, lexicon_params, burn_samps, data_writer):
+    def __init__(self, corpus_file, inference_algorithm, lexicon_params):#, burn_samps):#, data_writer):
 
         self.id = uuid.uuid4()
         self.alg = inference_algorithm
         self.world = World(corpus=corpus_file)
         self.corpus = Corpus(world=self.world, corpus=corpus_file)
         self.params = lexicon_params
-        self.burn_samps = burn_samps
+#        self.burn_samps = burn_samps
         self.lexicon = Lexicon(self.corpus, self.params, verbose=0, hyper_inf=False)
 
-        self.filename = 'simulations/' + str(self.id)
-        self.data_writer = data_writer
+        self.dir = 'simulations/'+str(self.id)+'/'
+        os.mkdir(self.dir)
+        self.filename = self.dir + str(self.id)  + '.summary'
+        self.data_file = open(self.dir + str(self.id) + '.data', 'a')
+#        self.data_writer = data_writer
 
     def learn_lexicon(self):
         if self.alg == 'gibbs':
             self.lexicon.learn_lex_gibbs(self.corpus, self.params)
-            ref = np.mean(self.lexicon.refs[self.burn_samps:], axis=0)
-            nonref = np.mean(self.lexicon.nonrefs[self.burn_samps:], axis=0)
+            pickle.dump(self.lexicon, self.data_file)
+#            pickle.dump(self.lexicon.nonrefs, self.data_file)
+#            ref = np.mean(self.lexicon.refs[self.burn_samps:], axis=0)
+#            nonref = np.mean(self.lexicon.nonrefs[self.burn_samps:], axis=0)
+            ref = self.lexicon.ref
+            nonref = self.lexicon.non_ref
             return ref, nonref
         elif self.alg == 'pf':
             self.lexicon.learn_lex_pf(self.corpus, self.params, resample=False)
             self.lexicon.output_lex_pf(self.corpus, self.params)
-            return self.lexicon.ref, self.lexicon.nonref
+            return self.lexicon.ref, self.lexicon.non_ref
 
 #    def maximize_score(self):
 #        scores = {}
@@ -47,10 +52,6 @@ class Simulation:
 
         ref, nonref = self.learn_lexicon()
         threshold, (p, r, f) = self.lexicon.get_max_f(ref, self.corpus)
-
-        self.data_writer.writerow([str(self.id), self.alg, self.params.n_samps, self.params.n_particles,
-                                   self.params.alpha_r, self.params.alpha_nr, self.params.empty_intent,
-                                   p, r, f, threshold])
 
         sim_file = open(self.filename + '.txt', 'a')
         sim_file.write('Algorithm:' + self.alg)
@@ -70,12 +71,18 @@ class Simulation:
         sim_file.write('\n\n')
 
         sim_file.write('Precision: %s\nRecall: %s\nF-score: %s\nThreshold: %s' % (p, r, f, threshold))
+        sim_file.write('\n\n')
+
+        sim_file.write(str([str(self.id), self.alg, self.params.n_samps, self.params.n_particles,
+                            self.params.alpha_r, self.params.alpha_nr, self.params.empty_intent,
+                            p, r, f, threshold]))
+
         sim_file.close()
 
         self.lexicon.plot_scores()
         plt.savefig(self.filename + '_scores.png')
         self.lexicon.plot_fscores()
-        plt.savefig(self.filename + '_fscore.png')
+        plt.savefig(self.filename + '_fscores.png')
         plt.close()
         #self.lexicon.plot_lex(self.world)
         #plt.savefig(self.filename + "_lex.png")
@@ -135,18 +142,18 @@ def main(argv):
     alpha_r = None
     alpha_nr = None
     empty_intent = None
-    burn_samps = None
+#    burn_samps = None
 
     usage = "usage: dmww_testing.py " \
             "-a <inference algorithm: gibbs or pf> " \
             "-n <number of samples/particles> " \
-            "-b <number of burn-in samples> " \
             "--alpha-r <referential alpha> " \
             "--alpha-nr <non-referential alpha> " \
             "--empty-intent <empty intent probability>"
+#            "-b <number of burn-in samples> " \
 
     try:
-        opts, args = getopt.getopt(argv, "ha:n:b:", ["alpha-r=", "alpha-nr=", "empty-intent="])
+        opts, args = getopt.getopt(argv, "ha:n:", ["alpha-r=", "alpha-nr=", "empty-intent="])
     except getopt.GetoptError:
         print usage
         sys.exit(2)
@@ -177,14 +184,14 @@ def main(argv):
                     empty_intent=empty_intent,
                     n_particles=n)
 
-    data_file = open('simulations/%s_n%s.csv' % (inference_algorithm, n), 'a')
-    data_writer = csv.writer(data_file)
-    data_writer.writerow(['id', 'alg', 'n_samps', 'n_particles',
-                           'alpha_r', 'alpha_nr', 'empty_intent',
-                           'precision', 'recall', 'f-score', 'threshold'])
+#    data_file = open('simulations/%s_n%s.csv' % (inference_algorithm, n), 'a')
+#    data_writer = csv.writer(data_file)
+#    data_writer.writerow(['id', 'alg', 'n_samps', 'n_particles',
+#                           'alpha_r', 'alpha_nr', 'empty_intent',
+#                           'precision', 'recall', 'f-score', 'threshold'])
 
     seed(1)
-    sim = Simulation('corpora/corpus.csv', inference_algorithm, params, burn_samps, data_writer)
+    sim = Simulation('corpora/corpus.csv', inference_algorithm, params)#, burn_samps)#, data_writer)
     sim.run()
 
 if __name__ == "__main__":
