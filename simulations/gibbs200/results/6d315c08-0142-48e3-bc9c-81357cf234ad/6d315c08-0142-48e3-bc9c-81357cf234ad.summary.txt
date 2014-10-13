@@ -1,0 +1,49 @@
+Algorithm:gibbs
+
+Parameters:
+intent_hp_b: 5.0000
+intent_hp_a: 1.0000
+n_particles: 200.0000
+empty_intent: 0.0100
+alpha_nr_hp: 2.0000
+alpha_r: 0.0100
+n_samps: 200.0000
+alpha_nr: 10.0000
+alpha_r_hp: 1.0000
+n_hypermoves: 5.0000
+
+Lexicon:
+o: rattle, w: you
+o: mirror, w: baby
+o: mirror, w: david
+o: pig, w: pig
+o: duck, w: the
+o: girl, w: courtney
+o: lamb, w: baa
+o: book, w: a
+o: book, w: book
+o: hat, w: look
+o: hat, w: peekaboo
+o: hat, w: grab
+o: bunny, w: this
+o: bunny, w: hiphop
+o: sheep, w: sheep
+o: eyes, w: smilie
+o: woman, w: is
+o: kitty, w: ambrose
+o: bear, w: bear
+o: bear, w: is
+o: baby, w: meow
+o: man, w: daddy
+o: boy, w: and
+o: cow, w: moocow
+o: face, w: bottles
+o: bird, w: bigbird
+
+
+Precision: 0.230769230769
+Recall: 0.176470588235
+F-score: 0.2
+Threshold: 0.24
+
+['6d315c08-0142-48e3-bc9c-81357cf234ad', 'gibbs', 200, 200, 0.01, 10.0, 0.01, 0.23076923076923078, 0.17647058823529413, 0.20000000000000001, 0.24]

@@ -1,0 +1,91 @@
+Algorithm:gibbs
+
+Parameters:
+intent_hp_b: 5.0000
+intent_hp_a: 1.0000
+n_particles: 200.0000
+empty_intent: 0.0100
+alpha_nr_hp: 2.0000
+alpha_r: 0.0010
+n_samps: 200.0000
+alpha_nr: 0.0100
+alpha_r_hp: 1.0000
+n_hypermoves: 5.0000
+
+Lexicon:
+o: rattle, w: yeah
+o: rattle, w: see
+o: rattle, w: are
+o: rattle, w: know
+o: mirror, w: baby
+o: mirror, w: bunnies
+o: mirror, w: david
+o: pig, w: oink
+o: pig, w: piggie
+o: pig, w: yes
+o: pig, w: does
+o: pig, w: pig
+o: pig, w: you
+o: duck, w: look
+o: duck, w: huh
+o: duck, w: rolypoly
+o: duck, w: the
+o: ring, w: ring
+o: ring, w: it
+o: ring, w: on
+o: ring, w: you
+o: girl, w: another
+o: girl, w: courtney
+o: lamb, w: sweetie
+o: lamb, w: baa
+o: book, w: a
+o: book, w: ahhah
+o: book, w: book
+o: hat, w: baseball
+o: hat, w: peekaboo
+o: hat, w: alisons
+o: hat, w: mickeymouse
+o: hat, w: wanna
+o: bunny, w: song
+o: bunny, w: bunny
+o: sheep, w: cute
+o: sheep, w: him
+o: sheep, w: baa
+o: sheep, w: the
+o: eyes, w: look
+o: eyes, w: looking
+o: woman, w: and
+o: kitty, w: kitty
+o: kitty, w: yeah
+o: kitty, w: ambrose
+o: bear, w: another
+o: bear, w: bear
+o: bear, w: smilie
+o: hand, w: a
+o: hand, w: yeah
+o: hand, w: that
+o: hand, w: mhmm
+o: baby, w: meow
+o: man, w: ours
+o: man, w: who
+o: man, w: mommy
+o: boy, w: dada
+o: boy, w: ambrose
+o: cow, w: she
+o: cow, w: cow
+o: cow, w: moocow
+o: cow, w: will
+o: cow, w: funny
+o: cow, w: yes
+o: cow, w: moo
+o: face, w: bottles
+o: bird, w: bigbird
+o: bird, w: yeah
+
+
+Precision: 0.147058823529
+Recall: 0.294117647059
+F-score: 0.196078431373
+Threshold: 0.06
+
+['e7fc6fc4-1c42-4659-acc1-ec2c08734f7e', 'gibbs', 200, 200, 0.001, 0.01, 0.01, 0.14705882352941177, 0.29411764705882354, 0.19607843137254904, 0.06]

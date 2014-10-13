@@ -1,0 +1,12 @@
+Preparing to run simulation with parameters gibbs 1 0.0001 0.01 0.01
+Loading python modules...
+Starting simulation...
+/home/mikabr/projects/dmww/dmww_classes.py:456: RuntimeWarning: invalid value encountered in divide
+  lex = np.divide(lex, row_sums[:, newaxis])
+/home/mikabr/projects/dmww/dmww_classes.py:458: RuntimeWarning: invalid value encountered in greater
+  links = where(lex > threshold)
+dmww_testing.py:67: RuntimeWarning: invalid value encountered in divide
+  links = where(ref[obj, :] / row_sums[obj] > threshold)
+dmww_testing.py:67: RuntimeWarning: invalid value encountered in greater
+  links = where(ref[obj, :] / row_sums[obj] > threshold)
+[('-a', 'gibbs'), ('-n', '1'), ('--alpha-r', '0.0001'), ('--alpha-nr', '0.01'), ('--empty-intent', '0.01')]

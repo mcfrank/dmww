@@ -1,0 +1,41 @@
+Algorithm:gibbs
+
+Parameters:
+intent_hp_b: 5.0000
+intent_hp_a: 1.0000
+n_particles: 10.0000
+empty_intent: 0.0100
+alpha_nr_hp: 2.0000
+alpha_r: 1.0000
+n_samps: 10.0000
+alpha_nr: 10.0000
+alpha_r_hp: 1.0000
+n_hypermoves: 5.0000
+
+Lexicon:
+o: mirror, w: bunnies
+o: mirror, w: david
+o: girl, w: family
+o: lamb, w: baa
+o: lamb, w: bumpba
+o: book, w: book
+o: bunny, w: oh
+o: bunny, w: bunnyrabbit
+o: woman, w: and
+o: kitty, w: yeah
+o: kitty, w: kittycat
+o: bear, w: bear
+o: bear, w: bottle
+o: baby, w: baby
+o: man, w: mommy
+o: cow, w: moocow
+o: face, w: bottles
+o: bird, w: bigbird
+
+
+Precision: 0.388888888889
+Recall: 0.205882352941
+F-score: 0.269230769231
+Threshold: 0.27
+
+['b849f247-ecc0-411f-9407-3059c495c446', 'gibbs', 10, 10, 1.0, 10.0, 0.01, 0.3888888888888889, 0.20588235294117646, 0.26923076923076922, 0.27]

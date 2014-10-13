@@ -17,7 +17,7 @@ class Simulation:
 #        self.burn_samps = burn_samps
         self.lexicon = Lexicon(self.corpus, self.params, verbose=0, hyper_inf=False)
 
-        self.dir = 'simulations/'+str(self.id)+'/'
+        self.dir = 'simulations/results/'+str(self.id)+'/'
         os.mkdir(self.dir)
         self.filename = self.dir + str(self.id)  + '.summary'
         self.data_file = open(self.dir + str(self.id) + '.data', 'a')

@@ -21,7 +21,11 @@
 #$ -m beas
 
 # set a name
-#$ -N $1"-"$2"-"$3"-"$4"-"$5"-"$6
+# -N test
+
+# set error and output directories
+#$ -e "$HOME/projects/dmww/simulations/output/"
+#$ -o "$HOME/projects/dmww/simulations/output/"
 
 echo "Preparing to run simulation with parameters "$*
 
@@ -29,4 +33,4 @@ echo "Loading python modules..."
 module load python
 
 echo "Starting simulation..."
-python dmww_testing.py -a $1 -n $2 -b $3 --alpha-r $4 --alpha-nr $5 --empty-intent $6
+python dmww_testing.py -a $1 -n $2 --alpha-r $3 --alpha-nr $4 --empty-intent $5
