@@ -536,7 +536,7 @@ class Lexicon:
 
                 self.refs[s] = copy.deepcopy(self.ref)
                 self.nonrefs[s] = copy.deepcopy(self.non_ref)
-#                self.sample_fscores[s] = self.get_max_f(corpus)[1][2]
+                self.sample_fscores[s] = self.get_max_f(self.ref, corpus)[1][2]
 
                 if self.hyper_inf:
                     params = self.hyper_param_inf(corpus, params, self.sample_scores[s])
@@ -600,30 +600,29 @@ class Lexicon:
                 #     params = self.hyper_param_inf(corpus, params, self.sample_scores[s])
                 #     self.params = params
 
-
         #########
         ## output_lex_pf does the evaluation
         def output_lex_pf(self,
-                         corpus,
-                         params):
+                          corpus,
+                          params):
 
             refs = np.zeros((params.n_particles, corpus.world.n_objs, corpus.world.n_words))
+            non_refs = np.zeros((params.n_particles, corpus.world.n_words))
             for i, p in enumerate(self.particles):
                 refs[i] = p.ref
+                non_refs[i] = p.non_ref
 
             best = np.where(self.weights==max(self.weights))[0][0]
             self.ref = np.around(refs.mean(axis=0), decimals=2)
+            self.non_ref = np.around(non_refs.mean(axis=0), decimals=2)
 
-            if self.verbose > 1:
+            if self.verbose > 0:
                 print "\n**** BEST PARTICLE ****"
                 self.particles[best].verbose = 2
                 self.particles[best].score_full_lex(corpus, params, init=False)
 
                 print "\n**** GRAND MEAN ****"
                 print self.ref
-
-            # TODO average nonref lexicons and populate
-            # separate averaging and printing
 
 
         #########
