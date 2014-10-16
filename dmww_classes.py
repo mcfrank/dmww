@@ -9,6 +9,7 @@ import time
 import copy
 from random import *
 import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import pylab
@@ -891,11 +892,11 @@ class Lexicon:
                 print "\n*************** %d ***************" % s
             elif self.verbose > 0:
                 print str(self.sample_scores[s-1])
-#            else:
-#                if mod(s, 80) == 0:
-#                    print "\n"
-#                else:
-#                    sys.stdout.write(".")
+            else:
+                if mod(s, 80) == 0:
+                    print "\n"
+                else:
+                    sys.stdout.write(".")
 
         ########
         ## scoring method

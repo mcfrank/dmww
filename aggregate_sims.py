@@ -7,36 +7,31 @@ from dmww_classes import *
 
 
 def find_best_sim(direc, burn_samps):
-    # summary_file = open('gibbs1000.summary.txt', 'w')
-    #    summary_writer = csv.writer(summary_file)
-    #    summary_writer.writerow(['alpha_r', 'alpha_nr', 'empty_intent', 'precision', 'recall', 'f_score'])
-    #    sims = {}
+
+    sim = {}
+
     for sim_id in os.listdir(direc):
 
-        f = open(direc + sim_id + '/' + sim_id + '.data')
-        lexicon = pickle.load(f)
-        if len(lexicon.refs) > burn_samps:
+        df = open(direc + sim_id + '/' + sim_id + '.data')
+        lexicon = pickle.load(df)
+        df.close()
+        if lexicon.inference_method == 'gibbs' and len(lexicon.refs) > burn_samps:
             ref = np.mean(lexicon.refs[burn_samps:], axis=0)
         else:
             ref = lexicon.ref
+
         corpus_file = 'corpora/corpus.csv'
         world = World(corpus=corpus_file)
         corpus = Corpus(world=world, corpus=corpus_file)
 
         t, (p, r, f) = lexicon.get_max_f(ref, corpus)
-        #        sims[sim_id] = ((p,r,f), str(lexicon.params))
+        sims[sim_id] = ((p,r,f), str(lexicon.params))
         print 'simulation', sim_id, 'score', f
 
-
-# ar = lexicon.params.alpha_r
-#        anr = lexicon.params.alpha_nr
-#        ei = lexicon.params.empty_intent
-#        summary_writer.writerow([str(ar), str(anr), str(ei), str(p), str(r), str(f)])
-
-#    best_sim = max(sims, key = lambda s: sims[s][0][2])
-#    print 'best sim:', best_sim
-#    print 'best score:', sims[best_sim][0]
-#    print 'best params', sims[best_sim][1]
+    best_sim = max(sims, key = lambda s: sims[s][0][2])
+    print 'best sim:', best_sim
+    print 'best score:', sims[best_sim][0]
+    print 'best params', sims[best_sim][1]
 
 
 def make_fscore_plot(path_to_file, plot_filename):
@@ -58,18 +53,27 @@ def make_particle_plot(path_to_file, plot_filename, sample_sizes, num_samples):
     corpus = Corpus(world=world, corpus=corpus_file)
     f = open(path_to_file)
     lex = pickle.load(f)
+    print 'loaded lex'
     if any([s > len(lex.particles) for s in sample_sizes]):
         raise ValueError, "sample sizes must be smaller than number of particles"
-    averages = {}
-    for s in sample_sizes:
-        samples = []
-        for n in xrange(num_samples):
-            particles = sample(lex.particles, s)
-            size_avg = mean([lex.get_max_f(p.ref, corpus)[1][2] for p in particles])
-            samples.append(size_avg)
-        averages[s] = mean(samples)
+#    averages = {}
+#    for s in sample_sizes:
+#        samples = []
+#        for n in xrange(num_samples):
+#            particles = sample(lex.particles, s)
+#            size_avg = mean([lex.get_max_f(p.ref, corpus)[1][2] for p in particles])
+#            samples.append(size_avg)
+#        samples = [mean([lex.get_max_f(p.ref, corpus)[1][2] for p in sample(lex.particles, s)])
+#                   for n in xrange(num_samples)]
+#        averages[s] = mean(samples)
+    averages = {s: mean([mean([lex.get_max_f(p.ref, corpus)[0] for p in sample(lex.particles, s)])
+                    for n in xrange(num_samples)])
+                for s in sample_sizes}
+    print 'computed averages'
+    sizes = sort(averages.keys())
+    scores = [averages[s] for s in sizes]
     fig, ax = plt.subplots()
-    ax.plot(averages.keys(), averages.values(), '-')
+    ax.plot(sizes, scores, '-')
     plt.xlabel('number of particles')
     plt.ylabel('average f-score')
     plt.title('Lexicon f-score for different numbers of particles')
@@ -82,6 +86,7 @@ def make_particle_plot(path_to_file, plot_filename, sample_sizes, num_samples):
 
 #sid ='cbe5a7df-c707-4da1-8887-0772af14bc34'
 #make_fscore_plot(sid+'.data', sid+'.fscores.png')
-sid = '20d2f363-1552-4b2c-b576-f9589ef892f7'
+#sid = 'db6a6173-c4e6-41c7-8bea-e53e53843061'
+sid = '61cfa357-c9e8-4723-b213-028b1b606043'
 path = 'simulations/results/' + sid + '/' + sid + '.data'
-make_particle_plot(path, sid+'.fscores.png', xrange(10), 10)
+make_particle_plot(path, sid+'.fscores.png', [1,2,5,10,20,50,100], 10)

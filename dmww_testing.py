@@ -9,6 +9,7 @@ class Simulation:
     def __init__(self, corpus_file, inference_algorithm, lexicon_params):
 
         self.id = uuid.uuid4()
+        print 'sim id', self.id
         self.alg = inference_algorithm
         self.world = World(corpus=corpus_file)
         self.corpus = Corpus(world=self.world, corpus=corpus_file)
@@ -65,11 +66,11 @@ class Simulation:
         sim_file.close()
 
         if self.alg == 'gibbs':
-            self.lexicon.plot_scores()
+            ax = self.lexicon.plot_scores()
             plt.savefig(self.filename + '_scores.png')
-            self.lexicon.plot_fscores()
+            ax = self.lexicon.plot_fscores()
             plt.savefig(self.filename + '_fscores.png')
-            plt.close()
+#            plt.close()
 
 
 def main(argv):
