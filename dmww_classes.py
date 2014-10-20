@@ -443,7 +443,8 @@ class Lexicon:
 
         #########
         ##  get_f scores the lexicon based on some threshold
-        def get_f(self, lex, corpus, threshold): #, lex_eval="ref"):
+        @staticmethod
+        def get_f(lex, corpus, threshold): #, lex_eval="ref"):
             gs = squeeze(asarray(corpus.gs))
             gs_num_mappings = shape(gs)[0]
 
@@ -479,23 +480,26 @@ class Lexicon:
             recall = float(p_count) / float(gs_num_mappings)
 
             # now F is just the harmonic mean
+            f = 0
             try:
                 f = stats.hmean([precision, recall])
             except ValueError:
-                if self.verbose >= 1:
-                    print "Recall or precision 0, could not compute f score."
-            else:
-#                print "precision: %2.2f " % precision
-#                print "recall: %2.2f" % recall
-#                print "f: %2.2f" % f
+                pass
+#                if self.verbose >= 1:
+#                print "Recall or precision 0, could not compute f score."
+    #            else:
+    #                print "precision: %2.2f " % precision
+    #                print "recall: %2.2f" % recall
+    #                print "f: %2.2f" % f
 
-                return (precision, recall, f)
+            return (precision, recall, f)
 
-        def get_max_f(self, lex, corpus): #, lex_eval="ref"):
+        @staticmethod
+        def get_max_f(lex, corpus): #, lex_eval="ref"):
             scores = {}
             threshold_opts = [float(t)/100 for t in xrange(101)]
             for threshold in threshold_opts:
-                score = self.get_f(lex, corpus, threshold) #, lex_eval)
+                score = Lexicon.get_f(lex, corpus, threshold) #, lex_eval)
                 if score:
                     scores[threshold] = score
             best_threshold = max(scores, key=lambda t: scores[t][2])

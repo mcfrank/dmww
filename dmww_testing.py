@@ -24,46 +24,48 @@ class Simulation:
     def learn_lexicon(self):
         if self.alg == 'gibbs':
             self.lexicon.learn_lex_gibbs(self.corpus, self.params)
-            pickle.dump(self.lexicon, self.data_file)
-            ref = self.lexicon.ref
-            nonref = self.lexicon.non_ref
-            return ref, nonref
+            refs = self.lexicon.refs
+            non_refs = self.lexicon.nonrefs
         elif self.alg == 'pf':
             self.lexicon.learn_lex_pf(self.corpus, self.params, resample=False)
             self.lexicon.output_lex_pf(self.corpus, self.params)
-            pickle.dump(self.lexicon, self.data_file)
-            return self.lexicon.ref, self.lexicon.non_ref
+            refs = [p.ref for p in self.lexicon.particles]
+            non_refs = [p.non_ref for p in self.lexicon.particles]
+        pickle.dump({'alg': self.alg, 'params': self.params, 'refs': refs, 'non_refs': non_refs}, self.data_file)
+        self.data_file.close()
+#        return self.lexicon.ref, self.lexicon.non_ref
 
     def run(self):
 
-        ref, nonref = self.learn_lexicon()
-        threshold, (p, r, f) = self.lexicon.get_max_f(ref, self.corpus)
+        self.learn_lexicon()
+#        ref, nonref = self.learn_lexicon()
+#        threshold, (p, r, f) = self.lexicon.get_max_f(ref, self.corpus)
 
-        sim_file = open(self.filename + '.txt', 'a')
-        sim_file.write('Algorithm:' + self.alg)
-        sim_file.write('\n\n')
-
-        sim_file.write('Parameters:\n')
-        sim_file.write(str(self.lexicon.params))
-        sim_file.write('\n\n')
-
-        sim_file.write('Lexicon:\n')
-        for obj in range(self.world.n_objs):
-            row_sums = ref.sum(axis=1)
-            links = where(ref[obj, :] / row_sums[obj] > threshold)
-            for word in links[0]:
-                sim_file.write('o: %s, w: %s' % (self.world.objs_dict[obj][0], self.world.words_dict[word][0]))
-                sim_file.write('\n')
-        sim_file.write('\n\n')
-
-        sim_file.write('Precision: %s\nRecall: %s\nF-score: %s\nThreshold: %s' % (p, r, f, threshold))
-        sim_file.write('\n\n')
-
-        sim_file.write(str([str(self.id), self.alg, self.params.n_samps, self.params.n_particles,
-                            self.params.alpha_r, self.params.alpha_nr, self.params.empty_intent,
-                            p, r, f, threshold]))
-
-        sim_file.close()
+        # sim_file = open(self.filename + '.txt', 'a')
+        # sim_file.write('Algorithm:' + self.alg)
+        # sim_file.write('\n\n')
+        #
+        # sim_file.write('Parameters:\n')
+        # sim_file.write(str(self.lexicon.params))
+        # sim_file.write('\n\n')
+        #
+        # sim_file.write('Lexicon:\n')
+        # for obj in range(self.world.n_objs):
+        #     row_sums = ref.sum(axis=1)
+        #     links = where(ref[obj, :] / row_sums[obj] > threshold)
+        #     for word in links[0]:
+        #         sim_file.write('o: %s, w: %s' % (self.world.objs_dict[obj][0], self.world.words_dict[word][0]))
+        #         sim_file.write('\n')
+        # sim_file.write('\n\n')
+        #
+        # sim_file.write('Precision: %s\nRecall: %s\nF-score: %s\nThreshold: %s' % (p, r, f, threshold))
+        # sim_file.write('\n\n')
+        #
+        # sim_file.write(str([str(self.id), self.alg, self.params.n_samps, self.params.n_particles,
+        #                     self.params.alpha_r, self.params.alpha_nr, self.params.empty_intent,
+        #                     p, r, f, threshold]))
+        #
+        # sim_file.close()
 
         if self.alg == 'gibbs':
             ax = self.lexicon.plot_scores()
