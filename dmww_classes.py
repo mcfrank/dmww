@@ -364,7 +364,10 @@ class Lexicon:
             if world.n_words < 30:
                 fig = plt.figure(figsize=(10, 5))
             else:
-                fig = plt.figure(figsize=(.5 * np.shape(hiwords)[0], .9 * world.n_objs))
+                #fig = plt.figure(figsize=(.5 * np.shape(hiwords)[0], .9 * world.n_objs))
+                fig = plt.figure(figsize=(.9 * np.shape(hiwords)[0], 1.2 * world.n_objs))
+                #fig = plt.figure(figsize=(width,height))
+
 
             gs = gridspec.GridSpec(2, 1, height_ratios=[9, 1])
 
