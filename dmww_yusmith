@@ -1,0 +1,156 @@
+
+from dmww_classes import *
+from sampling_helper import *
+from matplotlib import pyplot as plt
+
+################################################################
+# HELPER FUNCTIONS
+################################################################
+def create_yusmith_corpus(condition, num_words, num_occurrences):
+
+    # set parameters
+    total_words = num_words * num_occurrences
+    num_trials = total_words / condition
+    items = np.ones(num_words) * num_occurrences
+
+    # make empty corpus
+    yucorpus =  list()
+    for i in range(num_trials):
+        yucorpus.append([np.zeros(condition, dtype=int8),
+                         np.zeros(condition, dtype=int8)])
+
+    # generate actual corpus
+    try:
+        for i in range(num_trials): # for each trial
+            for j in range(condition): # for each word/object pairing in the trial
+                item_probs = np.divide(items, total_words)
+
+                yucorpus[i][0][j] = where(np.random.multinomial(1, item_probs) == 1)[0][0]
+
+                # avoid repeats
+                c = 1
+                while sum(yucorpus[i][0][j] == yucorpus[i][0]) > 1:
+                  yucorpus[i][0][j] = where(np.random.multinomial(1, item_probs) == 1)[0][0]
+                  c = c + 1;
+                  if c > 1000:
+                        break
+
+                yucorpus[i][1][j] = yucorpus[i][0][j]
+
+                # decrement the item counts
+                items[yucorpus[i][0][j]] = items[yucorpus[i][0][j]]  - 1;
+                total_words = total_words - 1
+    except ValueError:
+          print 'failed to generate corpus, run again!'
+
+    return(yucorpus)
+
+def score_luce_choice(epsilon, lex, num_words, num_foils):
+
+    lex = lex + epsilon
+    lc = zeros(num_words)
+    correct = zeros(num_words)
+    incorrect = zeros(num_words)
+    for i in range(num_words):
+        foils = sample(xrange(num_words),num_foils)
+        while i in foils:
+            foils = sample(xrange(num_words),num_foils)
+
+        correct[i] = lex[i,i]
+        incorrect[i] = lex[foils[0],i] + lex[foils[1],0] + lex[foils[2],0]
+        lc[i] = divide(correct[i], correct[i] + incorrect[i])
+
+    choice_score = sum(lc)/num_words
+    return(choice_score)
+
+################################################################
+# DO SIMULATIONS
+################################################################
+
+# set parameters:
+num_runs = 10
+conditions = [2, 3, 4]
+num_words = 18
+num_occurrences = 6
+total_words = num_words * num_occurrences
+num_foils = 3
+epsilon = .00001
+inference = 'Gibbs' #"Gibbs" "Particle Filter"
+
+# do sims looping over multiple runs and conditions
+scores = zeros([num_runs, len(conditions)])
+
+for run in range(num_runs):
+    for cond in range(len(conditions)):
+        condition = conditions[cond]
+        num_trials = total_words / condition
+
+        # make corpus
+        yucorpus = create_yusmith_corpus(condition, num_words, num_occurrences)
+
+        # set up world and corpus
+        w = World(n_words=num_words, n_objs=num_words)
+
+        c = Corpus(w,
+                   n_per_sent=condition,
+                   n_sents=num_trials)
+        c.sents = yucorpus
+        c.update()
+
+        if inference == 'Gibbs':
+            # define model parameters
+            p = Params(n_samps=200,
+                       n_particles=1,
+                       alpha_r=.1,
+                       alpha_nr=1,
+                       empty_intent=.01,
+                       n_hypermoves=5)
+
+            l = Lexicon(c, p,
+                        verbose=0,
+                        hyper_inf=True)
+
+            l.learn_lex_gibbs(c, p)
+
+        elif inference == 'Particle Filter':
+            # define model parameters
+            p = Params(n_samps=1,
+                       n_particles=10,
+                       alpha_r=.1,
+                       alpha_nr=1,
+                       empty_intent=.01,
+                       n_hypermoves=5)
+
+            l = Lexicon(c, p,
+                        verbose=0,
+                        hyper_inf=True)
+
+            l.learn_lex_pf(c, p, resample=False);
+            l.output_lex_pf(c, p)
+
+        # plot
+        # l.plot_lex(w, certainwords = 0)
+
+        # get score
+        scores[run, cond] = score_luce_choice(epsilon, l.ref, num_words, num_foils)
+
+print(scores)
+scores_means = mean(scores, 0)
+
+# plot means in each condition across runs
+x = arange(len(conditions))
+y = scores_means
+f = plt.figure(figsize=(10, 8))
+#f.add_subplot(2,1,1)
+ax = f.add_axes([0.1, 0.1, .8, .8])
+ax.bar(x, y, align='center')
+ax.set_xticks(x)
+ax.set_xlabel('Learning Condition', fontsize=25)
+ax.set_ylabel('Proportion Correct', fontsize=25)
+ax.set_xticklabels(['2x2', '3x3', '4x4'],  fontsize=20)
+ax.tick_params(axis='y', labelsize=20)
+plt.axhline(.25, color = "black", linestyle='dashed', linewidth=2)
+plt.ylim([0,1])
+ax.set_title(inference, fontsize = 30)
+#plt.show()
+plt.savefig('writeup/figures/' + inference.strp() + '.png')
