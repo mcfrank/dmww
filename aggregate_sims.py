@@ -6,14 +6,14 @@ from random import sample
 from dmww_classes import *
 
 
-def find_best_sim(direc, burn_samps):
+def find_best_sim(direc, corpus_file, avg_methods, burn_samps=0):
 
-    corpus_file = 'corpora/corpus.csv'
+#    corpus_file = 'corpora/corpus.csv'
     world = World(corpus=corpus_file)
     corpus = Corpus(world=world, corpus=corpus_file)
 
-    results_file = csv.writer(open('gibbs1000x.summary.csv', 'w'))
-    results_file.writerow(['alpha_r', 'alpha_nr', 'empty_intent', 'p', 'r', 'f'])
+#    results_file = csv.writer(open('gibbs1000x.summary.csv', 'w'))
+#    results_file.writerow(['alpha_r', 'alpha_nr', 'empty_intent', 'p', 'r', 'f'])
     par_sims = {}
 
     for sim_id in filter(lambda d: d[0] != '.', os.listdir(direc)):
@@ -24,34 +24,51 @@ def find_best_sim(direc, burn_samps):
         refs, non_refs, alg, params = results['refs'], results['non_refs'], results['alg'], results['params']
         df.close()
 
-        if len(refs) != 1000:
-            print 'non-1000 sim', sim_id
-            continue
+#        if len(refs) != 1000:
+#            print 'non-1000 sim', sim_id
+#            continue
 
         if alg == 'gibbs' and len(refs) > burn_samps:
-            ref = np.mean(refs[burn_samps:], axis=0)
-        else:
-            ref = np.mean(refs, axis=0)
+            refs = refs[burn_samps:]
 
-        par = (params.alpha_r, params.alpha_nr, params.empty_intent)
-        if par in par_sims:
-            par_sims[par][sim_id] = ref
-        else:
-            par_sims[par] = {sim_id: ref}
+#        if alg == 'gibbs' and len(refs) > burn_samps:
+#            ref = np.mean(refs[burn_samps:], axis=0)
+#        else:
+#            ref = np.mean(refs, axis=0)
 
-    avgs = {}
+        for avg in avg_methods:
+            if avg == 'refs':
+                ref = np.mean(refs, axis=0)
+                t, (p, r, f) = Lexicon.get_max_f(ref, corpus)
+                print avg, f
+            elif avg == 'f_vary':
+                fscores = [Lexicon.get_max_f(ref, corpus)[1][2] for ref in refs]
+                print avg, mean(fscores)
+            elif avg == 'f_const':
+                threshold_opts = [float(t)/100 for t in xrange(101)]
+                threshold_fscores = {t: mean([Lexicon.get_f(ref, corpus, t)[2] for ref in refs])
+                                     for t in threshold_opts}
+                print avg, threshold_fscores[max(threshold_fscores, key=lambda t: threshold_fscores[t])]
 
-    for par, sims in par_sims.iteritems():
+#        par = (params.alpha_r, params.alpha_nr, params.empty_intent)
+#        if par in par_sims:
+#            par_sims[par][sim_id] = ref
+#        else:
+#            par_sims[par] = {sim_id: ref}
 
-        par_avg = np.mean(sims.values(), axis=0)
-        t, (p, r, f) = Lexicon.get_max_f(par_avg, corpus)
-        avgs[par] = (p, r, f)
-        results_file.writerow(list(par) + [p, r, f])
-        print par, p, r, f
+#    avgs = {}
 
-    best_sim = max(avgs, key = lambda s: avgs[s][2])
-    print 'best sim:', best_sim
-    print 'best score:', avgs[best_sim]
+#    for par, sims in par_sims.iteritems():
+
+#        par_avg = np.mean(sims.values(), axis=0)
+#        t, (p, r, f) = Lexicon.get_max_f(par_avg, corpus)
+#        avgs[par] = (p, r, f)
+#        results_file.writerow(list(par) + [p, r, f])
+#        print par, p, r, f
+
+#    best_sim = max(avgs, key = lambda s: avgs[s][2])
+#    print 'best sim:', best_sim
+#    print 'best score:', avgs[best_sim]
 
 
 def make_multi_fscore_plot(direc):
@@ -236,10 +253,9 @@ def compute_sample_fscores(output_dir, results_dir, burn_samps):
 #compute_sample_fscores('/farmshare/user_data/mikabr/dmww_sims/gibbs1000/output/',
 #                       '/farmshare/user_data/mikabr/dmww_sims/gibbs1000/results/', 300)
 
-#sid ='cbe5a7df-c707-4da1-8887-0772af14bc34'
 #make_fscore_plot(sid+'.data', sid+'.fscores.png')
-sid = '03c2b37c-aa87-4d8e-905a-b94eec83d505'
-path = '/farmshare/user_data/mikabr/dmww_sims/pf1000/results/' + sid + '/' + sid + '.data'
+#path = '/farmshare/user_data/mikabr/dmww_sims/pf1000/results/' + sid + '/' + sid + '.data'
 #make_particle_plot(path, '/farmshare/user_data/mikabr/dmww_sims/pf1000/plots/'+sid+'.fscores.png', [1,2,5,10], 5)
 #make_particle_plot(path, '/farmshare/user_data/mikabr/dmww_sims/pf1000/plots/'+sid+'.fscores', [1,2,5,10,20,50,100], 10)
-make_particle_plot(path, '/farmshare/user_data/mikabr/dmww_sims/pf1000/plots/'+sid+'.fscores', [1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,300,400,500,600,700,800,900,1000], 100)
+#make_particle_plot(path, '/farmshare/user_data/mikabr/dmww_sims/pf1000/plots/'+sid+'.fscores', [1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,300,400,500,600,700,800,900,1000], 100)
+find_best_sim('simulations/pf_testing/', 'corpora/corpus.csv', ['refs', 'f_vary', 'f_const'])

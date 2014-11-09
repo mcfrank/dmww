@@ -6,17 +6,19 @@ from dmww_classes import *
 
 
 class Simulation:
-    def __init__(self, corpus_file, inference_algorithm, lexicon_params):
+    def __init__(self, corpus_file, corpus_mode, inference_algorithm, lexicon_params):
 
-        self.id = uuid.uuid4()
+#        self.id = uuid.uuid4()
+        self.id = '.'.join([str(lexicon_params.n_particles), corpus_mode])
         print 'sim id', self.id
         self.alg = inference_algorithm
         self.world = World(corpus=corpus_file)
-        self.corpus = Corpus(world=self.world, corpus=corpus_file)
+        self.corpus = Corpus(world=self.world, corpus=corpus_file, mode=corpus_mode)
         self.params = lexicon_params
         self.lexicon = Lexicon(self.corpus, self.params, verbose=0, hyper_inf=False)
 
-        self.dir = '/farmshare/user_data/mikabr/dmww_sims/pf1000/results/' + str(self.id) + '/'
+#        self.dir = '/farmshare/user_data/mikabr/dmww_sims/pf_testing/' + str(self.id) + '/'
+        self.dir = 'simulations/pf_testing/' + str(self.id) + '/'
         os.mkdir(self.dir)
         self.data_file = open(self.dir + str(self.id) + '.data', 'a')
 
@@ -75,21 +77,23 @@ class Simulation:
 
 
 def main(argv):
-    inference_algorithm = None
-    n = None
-    alpha_r = None
-    alpha_nr = None
-    empty_intent = None
+    inference_algorithm = 'gibbs'
+    n = 1
+    corpus_mode = 'normal'
+    alpha_r = 1.0
+    alpha_nr = 1.0
+    empty_intent = 0.01
 
     usage = "usage: dmww_testing.py " \
             "-a <inference algorithm: gibbs or pf> " \
             "-n <number of samples/particles> " \
+            "-c <corpus mode: normal, random, or double>" \
             "--alpha-r <referential alpha> " \
             "--alpha-nr <non-referential alpha> " \
             "--empty-intent <empty intent probability>"
 
     try:
-        opts, args = getopt.getopt(argv, "ha:n:", ["alpha-r=", "alpha-nr=", "empty-intent="])
+        opts, args = getopt.getopt(argv, "ha:n:c:", ["alpha-r=", "alpha-nr=", "empty-intent="])
     except getopt.GetoptError:
         print usage
         sys.exit(2)
@@ -105,6 +109,8 @@ def main(argv):
             inference_algorithm = arg
         elif opt == "-n":
             n = int(arg)
+        elif opt == "-c":
+            corpus_mode = arg
         elif opt == "-b":
             burn_samps = int(arg)
         elif opt == "--alpha-r":
@@ -121,7 +127,7 @@ def main(argv):
                     n_particles=n)
 
     seed()
-    sim = Simulation('corpora/corpus.csv', inference_algorithm, params)
+    sim = Simulation('corpora/corpus.csv', corpus_mode, inference_algorithm, params)
     sim.run()
 
 

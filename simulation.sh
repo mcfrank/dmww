@@ -24,8 +24,8 @@
 # -N test
 
 # set error and output directories
-#$ -e "/farmshare/user_data/mikabr/dmww_sims/pf1000/output/"
-#$ -o "/farmshare/user_data/mikabr/dmww_sims/pf1000/output/"
+#$ -e "/farmshare/user_data/mikabr/dmww_sims/pf_testing/"
+#$ -o "/farmshare/user_data/mikabr/dmww_sims/pf_testing/"
 
 echo "Preparing to run simulation with parameters "$*
 
@@ -33,4 +33,4 @@ echo "Preparing to run simulation with parameters "$*
 #module load python
 
 echo "Starting simulation..."
-python dmww_testing.py -a $1 -n $2 --alpha-r $3 --alpha-nr $4 --empty-intent $5
+python dmww_testing.py -a $1 -n $2 -c $3 --alpha-r $4 --alpha-nr $5 --empty-intent $6

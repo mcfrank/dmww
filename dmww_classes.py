@@ -1,6 +1,7 @@
 
 import numpy as np
 from sampling_helper import *
+np.seterr(divide='ignore', invalid='ignore')
 from scipy.stats import gamma, beta
 from scipy.misc import logsumexp
 import sys as sys
@@ -96,7 +97,8 @@ class Corpus:
                  world=World(),
                  n_per_sent=2,
                  n_sents=12,
-                 corpus=False):
+                 corpus=False,
+                 mode='normal'):
 
         self.sents = list()
         self.world = world
@@ -111,6 +113,7 @@ class Corpus:
             raw_corpus = loadtxt(self.corpus, delimiter=',', dtype=str)
             self.sents = list()
 
+            sents = []
             for s in range(shape(raw_corpus)[0]):
                 sent = list()
 
@@ -128,8 +131,14 @@ class Corpus:
                     words.append(world.words_dict[find(world.words_dict, word_labs[i])[0]][1])
                 sent.append(np.array(words))
 
-                self.sents.append(sent)
+                sents.append(sent)
 
+            if mode == 'random':
+                shuffle(sents)
+            elif mode == 'double':
+                sents = sents + sents
+
+            self.sents = sents
             self.n_sents = len(self.sents)
 
             # read in gold standard and convert with dict using world associated with corpus
@@ -457,8 +466,11 @@ class Lexicon:
 #                lex = self.non_ref
 
             #threshold lexicon by normalizing across words (each row)
+#            print lex
             row_sums = lex.sum(axis=1)
+#            print row_sums
             lex = np.divide(lex, row_sums[:, newaxis])
+#            print lex
 
             links = where(lex > threshold)
             obj_is = links[0]
