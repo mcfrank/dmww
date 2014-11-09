@@ -16,9 +16,8 @@ class Simulation:
         self.params = lexicon_params
         self.lexicon = Lexicon(self.corpus, self.params, verbose=0, hyper_inf=False)
 
-        self.dir = 'simulations/results/' + str(self.id) + '/'
+        self.dir = '/farmshare/user_data/mikabr/dmww_sims/pf1000/results/' + str(self.id) + '/'
         os.mkdir(self.dir)
-        self.filename = self.dir + str(self.id) + '.summary'
         self.data_file = open(self.dir + str(self.id) + '.data', 'a')
 
     def learn_lexicon(self):
@@ -69,9 +68,9 @@ class Simulation:
 
         if self.alg == 'gibbs':
             ax = self.lexicon.plot_scores()
-            plt.savefig(self.filename + '_scores.png')
+            plt.savefig(self.dir + str(self.id) + '_scores.png')
             ax = self.lexicon.plot_fscores()
-            plt.savefig(self.filename + '_fscores.png')
+            plt.savefig(self.dir + str(self.id) + '_fscores.png')
 #            plt.close()
 
 
@@ -94,7 +93,7 @@ def main(argv):
     except getopt.GetoptError:
         print usage
         sys.exit(2)
-    print opts
+    print 'params', opts
     for opt, arg in opts:
         if opt == '-h':
             print usage
