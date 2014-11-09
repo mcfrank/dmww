@@ -24,13 +24,13 @@
 # -N test
 
 # set error and output directories
-#$ -e "$HOME/projects/dmww/simulations/output/"
-#$ -o "$HOME/projects/dmww/simulations/output/"
+#$ -e "/farmshare/user_data/mikabr/dmww_sims/pf1000/output/"
+#$ -o "/farmshare/user_data/mikabr/dmww_sims/pf1000/output/"
 
 echo "Preparing to run simulation with parameters "$*
 
-echo "Loading python modules..."
-module load python
+#echo "Loading python modules..."
+#module load python
 
 echo "Starting simulation..."
 python dmww_testing.py -a $1 -n $2 --alpha-r $3 --alpha-nr $4 --empty-intent $5
