@@ -171,8 +171,8 @@ class Corpus:
             sent = list()
             words = np.array(sample(range(self.world.n_words), self.n_per_sent))
             objs = np.array(words)
-            sent.append(words)
             sent.append(objs)
+            sent.append(words)
 
             self.sents.append(sent)
 
