@@ -8,17 +8,23 @@ from dmww_classes import *
 
 seed(1)
 
-w = World(n_words=4,
-          n_objs=4)
+w = World(n_words=2,
+          n_objs=2)
 w.show()
 
+#c = Corpus(w,
+#           n_per_sent=1,
+#           n_sents=10)
 c = Corpus(w,
-           n_per_sent=3,
-           n_sents=40)
+           n_per_sent=0,
+           n_sents=0)
+c.sents.append([array([0,1]), array([0])])
+c.sents.append([array([1]), array([1])])
+c.update()
 c.show()
 
-p = Params(n_samps=1,
-           n_particles=1,
+p = Params(n_samps=100,
+           n_particles=100,
            alpha_r=.1,
            alpha_nr=10,
            empty_intent=.0001,
@@ -33,6 +39,14 @@ l = Lexicon(c, p,
 
 l.learn_lex_gibbs(c, p)
 l.params.show()
+#for s in xrange(l.params.n_samps):
+#    print "sample", s
+#    print l.refs[s]
+#    print l.nonrefs[s]
+
+print "\naverage"
+print np.around(np.mean(l.refs, axis=0), decimals=2)
+print np.around(np.mean(l.nonrefs, axis=0), decimals=2)
 
 print "\n\n****************************************** PARTICLE FILTER ******"
 seed(1)
@@ -42,7 +56,13 @@ l = Lexicon(c, p,
 
 l.learn_lex_pf(c, p, resample=False)
 l.output_lex_pf(c, p)
+#for p in xrange(l.params.n_particles):
+#    print "particle", p
+#    print l.refs[p]
+#    print l.nonrefs[p]
 
+print "\naverage"
+l.show()
 
 ## PROFILE CODE
 # import cProfile, pstats, StringIO

@@ -198,6 +198,7 @@ class Corpus:
     # must be called after hand-defined corpora
     def update(self):
         # keep track of number of words and objects in each sentence
+        self.n_sents = len(self.sents)
         self.n_os = map(lambda x: len(x[0]), self.sents)
         self.n_ws = map(lambda x: len(x[1]), self.sents)
 
@@ -556,7 +557,7 @@ class Lexicon:
 
                 self.refs[s] = copy.deepcopy(self.ref)
                 self.nonrefs[s] = copy.deepcopy(self.non_ref)
-                self.sample_fscores[s] = self.get_max_f(self.ref, corpus)[1][2]
+#                self.sample_fscores[s] = self.get_max_f(self.ref, corpus)[1][2]
 
                 if self.hyper_inf:
                     params = self.hyper_param_inf(corpus, params, self.sample_scores[s])
@@ -610,6 +611,13 @@ class Lexicon:
                     (j, k, p.sample_scores[i]) = p.choose_class(scores)
                     p.score_lex(corpus, params, i, j, k, 0)
 
+                print corpus.sents[i]
+                print np.around(np.mean([p.ref for p in self.particles], axis=0), decimals=2)
+#                for p in self.particles:
+#                    print p.ref
+#                for p in self.particles:
+#                    print p.non_ref
+
                 # self.reweight_particles(i)
 
                 # # resample when number of effective particles falls below N/2
@@ -626,15 +634,15 @@ class Lexicon:
                           corpus,
                           params):
 
-            refs = np.zeros((params.n_particles, corpus.world.n_objs, corpus.world.n_words))
-            non_refs = np.zeros((params.n_particles, corpus.world.n_words))
+            self.refs = np.zeros((params.n_particles, corpus.world.n_objs, corpus.world.n_words))
+            self.nonrefs = np.zeros((params.n_particles, corpus.world.n_words))
             for i, p in enumerate(self.particles):
-                refs[i] = p.ref
-                non_refs[i] = p.non_ref
+                self.refs[i] = p.ref
+                self.nonrefs[i] = p.non_ref
 
             best = np.where(self.weights==max(self.weights))[0][0]
-            self.ref = np.around(refs.mean(axis=0), decimals=2)
-            self.non_ref = np.around(non_refs.mean(axis=0), decimals=2)
+            self.ref = np.around(self.refs.mean(axis=0), decimals=2)
+            self.non_ref = np.around(self.nonrefs.mean(axis=0), decimals=2)
 
             if self.verbose > 0:
                 print "\n**** BEST PARTICLE ****"
@@ -911,11 +919,11 @@ class Lexicon:
                 print "\n*************** %d ***************" % s
             elif self.verbose > 0:
                 print str(self.sample_scores[s-1])
-            else:
-                if mod(s, 80) == 0:
-                    print "\n"
-                else:
-                    sys.stdout.write(".")
+#            else:
+#                if mod(s, 80) == 0:
+#                    print "\n"
+#                else:
+#                    sys.stdout.write(".")
 
         ########
         ## scoring method
@@ -934,9 +942,10 @@ class Lexicon:
         ## generic show method
         def show(self):
             print self.ref
+            print self.non_ref
 
-            if hasattr(self, 'non_ref'):
-                print "nr: " + str(self.non_ref)
+#            if hasattr(self, 'non_ref'):
+#                print "nr: " + str(self.non_ref)
 
         #########
         ## show_top_match: show nice matching entry

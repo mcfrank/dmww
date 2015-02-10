@@ -9,7 +9,7 @@ class Simulation:
     def __init__(self, corpus_file, corpus_mode, inference_algorithm, lexicon_params):
 
 #        self.id = uuid.uuid4()
-        self.id = '.'.join([str(lexicon_params.n_particles), corpus_mode])
+        self.id = '.'.join([inference_algorithm, str(lexicon_params.n_particles), corpus_mode])
         print 'sim id', self.id
         self.alg = inference_algorithm
         self.world = World(corpus=corpus_file)
@@ -18,7 +18,7 @@ class Simulation:
         self.lexicon = Lexicon(self.corpus, self.params, verbose=0, hyper_inf=False)
 
 #        self.dir = '/farmshare/user_data/mikabr/dmww_sims/pf_testing/' + str(self.id) + '/'
-        self.dir = 'simulations/pf_testing/' + str(self.id) + '/'
+        self.dir = 'simulations/more_pf_testing/' + str(self.id) + '/'
         os.mkdir(self.dir)
         self.data_file = open(self.dir + str(self.id) + '.data', 'a')
 
@@ -111,8 +111,6 @@ def main(argv):
             n = int(arg)
         elif opt == "-c":
             corpus_mode = arg
-        elif opt == "-b":
-            burn_samps = int(arg)
         elif opt == "--alpha-r":
             alpha_r = float(arg)
         elif opt == "--alpha-nr":
