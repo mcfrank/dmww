@@ -280,22 +280,18 @@ We make use of the Rollins Corpus from CHILDES \cite{macwhinney2000},
 % \end{subfigure}%
 % \begin{subfigure}{.5\textwidth}
 %   \centering
-  \includegraphics[width=3in]{figures/ParticleFilter.png}
 % \end{subfigure}
-\caption{Model predictions for the Yu and Smith (2007) stimuli. Proportion correct in a four alternative forced choice task is plotted as a function of the referential ambiguity condition. Performance is plotted for the Gibbs sampler (left) and incremental particle filter (right). For both inference algorithms, the model performs above chance on all conditions, and displays a graded decline in performance as the number of referential alternatives increases.}
+\caption{Model predictions for the Yu and Smith (2007) stimuli. Proportion correct in a four alternative forced choice task is plotted as a function of the referential ambiguity condition.For both inference algorithms, the model performs above chance on all conditions, and displays a graded decline in performance as the number of referential alternatives increases.}
 \label{fig:yu2007sim}
 \end{figure}
 
 A key test of the model is its ability to learn word-object mappings across many individually ambiguous contexts. To evaluate the model's performance, we tested the model in a design identical to \citeA{yu2007b}. We presented the model with 18 novel words across many trials that were individually referentially ambiguous. A trial consisted of  {\it n} words presented with {\it n}  objects. As in \citeA{yu2007b}, we tested three values for  {\it n}: 2, 3, 4. For example, in an {\it n} = 2 condition, the model was presented with two words and two possible referents. Across conditions, the number of co-occurences of each word-object pairing was held constant. We evaluated the posterior lexicon using a Luce choice rule \cite{luce1959} for each word with four referential alternatives (one correct and three foils). 
 
-Our model was able to successfully recover the correct mappings for most words. Because the lexicon is a continuous representation unlike the original model \cite{frank2009}, the model produced a graded pattern in performance in the test trials. As in the behavioral data \cite{yu2007b}, accuracy declined as the number of referential alternatives in the training trials increased: the model was most accurate in the {\it n} = 2 condition, and least accurate in the  {\it n}  = 4 condition (Fig.~\ref{fig:yu2007sim}). The particle filter inference algorithm performed overall better than the Gibbs sampler. 
-
-
-
+Our model was able to successfully recover the correct mappings for most words. Because the lexicon is a continuous representation unlike the original model \cite{frank2009}, the model produced a graded pattern in performance in the test trials. As in the behavioral data \cite{yu2007b}, accuracy declined as the number of referential alternatives in the training trials increased: the model was most accurate in the {\it n} = 2 condition, and least accurate in the  {\it n}  = 4 condition (Fig.~\ref{fig:yu2007sim}). 
 \subsection{Experiments with children}
 
 \subsubsection{Disambiguation}
-Disambiguation is the behavioral bias for children to map novel words on  In the classic demonstrations of this phenomenon, children are presented with two objects, one familiar and one novel, and asked to This phenomenona is a particular
+Disambiguation is the behavioral bias for children to map novel words on  In the classic demonstrations of this phenomenon, children are presented with two objects, one familiar and one novel, and asked to identify the referent of the novel word. This phenomenona is a particular
 
 To simulate this result, we asked our model to determine the meaning of a 
 
