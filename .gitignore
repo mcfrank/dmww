@@ -6,6 +6,13 @@
 *.aux
 *.log
 *.synctex.gz
+*.pdf
+*.bbl
+*.ent
+*.fff
+*.lof
+*.ttt
+*.blg
 
 # python
 *.py[cod]
