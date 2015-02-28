@@ -7,10 +7,10 @@
 \usepackage{amssymb}
 \usepackage{accents}
 \usepackage{xcolor}
-\usepackage[demo]{graphicx}
-\usepackage{caption}
-\usepackage{subcaption}
-
+% \usepackage{caption}
+% \usepackage{subcaption}
+\usepackage{graphicx}
+% \captionsetup{compatibility=false}
 
 % \usepackage{synctex}
 
@@ -190,12 +190,11 @@ The initial prior, Equation \ref{eqn:lexprior}, on the lexicon entries $L_{ob}$ 
 $$
 c'^{ob}_{k} = c^{ob}_{k} + \delta_{w_{r}=k},
 $$
-% <<<<<<< HEAD
 
 % \nnote{ok, now we need to talk about sampling... where does conjugacy go?}
 
 % Thus, we construct a learner who focusses on interpreting the intention, $I$, and its realization, $r$, in the moment, but uses these inferences to update beliefs about the lexicon, $L$, and it is these updated lexical beliefs that get carried forward into the future.
-% =======
+
 and for the non-reference ``object''
 $$
 c'^{NR}_{k} = c^{NR}_{k} + \sum_{j \in \{1,\dots,|w|\} \setminus r} \delta_{w_{j}=k}.
@@ -203,9 +202,8 @@ $$
 This closed form update means that we can easily sample $I$ and $r$ in the next context (by doing this update for each possible $I,r$ and normalizing) and then update the posterior on lexica; iterating through all learning contexts in this way yields a sample from the distribution on lexica conditioned on all the learning evidence.
 %
 Thus, we construct learning algorithm that focusses on interpreting the intention, $I$, and it's realization, $r$, in the moment, but uses these inferences to update beliefs about the lexicon, $L$, and it is these updated lexical beliefs that get carried forward into the future. \nnote{should walk through an example ala figure \ref{fig:inference_diagram}.}
-% >>>>>>> 02fa590148b237bb2f667c368498950207d3fbb7
 
-\begin{figure}[H]
+\begin{figure}[h!]
 \begin{center}
 \includegraphics[width=6.25in]{figures/inference_diagram.pdf}
 \caption{\label{fig:inference_diagram} A schematic of the model's evolving internal states when applied to a simple corpus with three contexts (marked $T=1,2,3$). States are shown for the particle filter inference algorithm with a single particle. Show at the top are the referential and non-referential lexicons (for simplicity, only the words ``pig'' and ``dog'' are shown in the referential lexicon). In the middle, the model's guesses about the referential correspondence between words and objects are shown for each situation.}
@@ -273,28 +271,27 @@ We provide proof of concept that.
 We make use of the Rollins Corpus from CHILDES \cite{macwhinney2000}, 
 
 \subsection{Cross-situational word learning with adults}
-A key test of the model is its ability to learn word-object mappings across many individually ambiguous contexts. To evaluate the model's performance, we tested the model in a design identical to \citeA{yu2007b}. We presented the model with 18 novel words across many trials that were individually referentially ambiguous. A trial consisted of  {\it n} words presented with {\it n}  objects. As in \citeA{yu2007b}, we tested three values for  {\it n}: 2, 3, 4. For example, in an {\it n} = 2 condition, the model was presented with two words and two possible referents. Across conditions, the number of co-occurences of each word-object pairing was held constant. We evaluated the posterior lexicon using a luce choice rule for each word with four referential alternatives (one correct and three foils). 
-
-Our model was able to successfully recover the correct mappings for most words. Because the lexicon is a continuous representation unlike the original model \cite{frank2009}, the model produced a graded pattern in performance in the test trials. As in the behavioral data  \cite{yu2007b}, accuracy declined as the number of referential alternatives in the training trials increased: the model was most accurate in the {\it n} = 2 condition, and least accurate in the  {\it n}  = 4 condition (Fig.~\ref{fig:yu2007sim}). The particle filter inference algorithm performed overall better than the Gibbs sampler. 
 
 \begin{figure}[h!]
 \centering
-\begin{subfigure}{.5\textwidth}
-  \centering
+% \begin{subfigure}{.5\textwidth}
+%   \centering
   \includegraphics[width=3in]{figures/Gibbs.png}
-\end{subfigure}%
-\begin{subfigure}{.5\textwidth}
-  \centering
-  \includegraphics[width=3in]{figures/ParticleFilter.png}
-\end{subfigure}
-\caption{Model predictions for the Yu and Smith (2007) stimuli. Proportion correct in a four alternative forced choice task is plotted as a function of the referential ambiguity condition. Performance is plotted for the Gibbs sampler (left) and incremental particle filter (right). For both inference algorithms, the model performs above chance on all conditions, and displays a graded decline in performance as the number of referential alternatives increases.}
+% \end{subfigure}%
+% \begin{subfigure}{.5\textwidth}
+%   \centering
+% \end{subfigure}
+\caption{Model predictions for the Yu and Smith (2007) stimuli. Proportion correct in a four alternative forced choice task is plotted as a function of the referential ambiguity condition.For both inference algorithms, the model performs above chance on all conditions, and displays a graded decline in performance as the number of referential alternatives increases.}
 \label{fig:yu2007sim}
 \end{figure}
 
+A key test of the model is its ability to learn word-object mappings across many individually ambiguous contexts. To evaluate the model's performance, we tested the model in a design identical to \citeA{yu2007b}. We presented the model with 18 novel words across many trials that were individually referentially ambiguous. A trial consisted of  {\it n} words presented with {\it n}  objects. As in \citeA{yu2007b}, we tested three values for  {\it n}: 2, 3, 4. For example, in an {\it n} = 2 condition, the model was presented with two words and two possible referents. Across conditions, the number of co-occurences of each word-object pairing was held constant. We evaluated the posterior lexicon using a Luce choice rule \cite{luce1959} for each word with four referential alternatives (one correct and three foils). 
+
+Our model was able to successfully recover the correct mappings for most words. Because the lexicon is a continuous representation unlike the original model \cite{frank2009}, the model produced a graded pattern in performance in the test trials. As in the behavioral data \cite{yu2007b}, accuracy declined as the number of referential alternatives in the training trials increased: the model was most accurate in the {\it n} = 2 condition, and least accurate in the  {\it n}  = 4 condition (Fig.~\ref{fig:yu2007sim}). 
 \subsection{Experiments with children}
 
 \subsubsection{Disambiguation}
-Disambiguation is the behavioral bias for children to map novel words on  In the classic demonstrations of this phenomenon, children are presented with two objects, one familiar and one novel, and asked to This phenomenona is a particular
+Disambiguation is the behavioral bias for children to map novel words on  In the classic demonstrations of this phenomenon, children are presented with two objects, one familiar and one novel, and asked to identify the referent of the novel word. This phenomenona is a particular
 
 To simulate this result, we asked our model to determine the meaning of a 
 

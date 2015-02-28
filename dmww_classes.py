@@ -45,26 +45,29 @@ class World:
         if self.corpus:
             raw_corpus = loadtxt(corpus, delimiter=',', dtype=str)
 
-            # create dictionary that maps word labels to numbers and object labels to numbers
-            # first, get all unique words and objects
+            # get all unique words and objects
             all_words = list()
             all_objs = list()
             for i in range(0, shape(raw_corpus)[0]):
                 all_objs.extend(str.split(raw_corpus[i][0]))
                 all_words.extend(str.split(raw_corpus[i][1]))
 
-            # now, create two dictionaries (labels -> nums)
-            u_objs = list(set(all_objs))
-            self.n_objs = size(u_objs)
-            self.objs_dict = list()
-            for i in range(0, size(u_objs)):
-                self.objs_dict.append([u_objs[i], i])
+        else:
+            all_words = [format(x,'2d') for x in range(n_words)]
+            all_objs = [format(x,'2d') for x in range(n_objs)]
 
-            u_words = list(set(all_words))
-            self.n_words = size(u_words)
-            self.words_dict = list()
-            for i in range(0, size(u_words)):
-                self.words_dict.append([u_words[i], i])
+        # now, create two dictionaries (labels -> nums)
+        u_objs = list(set(all_objs))
+        self.n_objs = size(u_objs)
+        self.objs_dict = list()
+        for i in range(0, size(u_objs)):
+            self.objs_dict.append([u_objs[i], i])
+
+        u_words = list(set(all_words))
+        self.n_words = size(u_words)
+        self.words_dict = list()
+        for i in range(0, size(u_words)):
+            self.words_dict.append([u_words[i], i])
 
     def show(self):
         print "n_objs = " + str(self.n_objs)
@@ -196,11 +199,14 @@ class Corpus:
         self.n_ws = map(lambda x: len(x[1]), self.sents)
 
     # must be called after hand-defined corpora
-    def update(self):
+    def update(self,
+               w):
         # keep track of number of words and objects in each sentence
         self.n_sents = len(self.sents)
         self.n_os = map(lambda x: len(x[0]), self.sents)
         self.n_ws = map(lambda x: len(x[1]), self.sents)
+        self.n_sents = len(self.sents)
+        self.world = w
 
 
 #################################################################
