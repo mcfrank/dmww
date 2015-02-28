@@ -14,6 +14,8 @@
 
 % \usepackage{synctex}
 
+\usepackage{setspace}
+
 \newcommand{\vect}[1]{\accentset{\rightharpoonup}{#1}}
 
 \newcommand{\nnote}[1]{\textcolor{blue}{[#1]}}
@@ -55,7 +57,7 @@ In what follows, we motivate our proposal with respect to the previous literatur
 
 One clue to the mechanisms of early vocabulary learning comes from the makeup of children's early vocabulary. Although children produce words of all different types, certain kinds of words are nevertheless overrepresented in early vocabulary. Names for things make up a substantially larger proportion of children's early vocabulary than they do later \cite{tardif2008,caselli1995}, alongside names for people and and words used in simple social routines (e.g., ``hi'' and ``bye''). Many observers have suggested that these kinds of words---especially basic-level nouns---are learned early because of the ease with which the linguistic form can be mapped to a particular observable referent \cite{locke1700,bloom2002,clark2003}. From there, generalizing particular referents to a broader class of referents is relatively trivial, given that the relevant concepts are typically at the basic-level and typically represent whole objects rather than parts \cite{markman1991}.
 
-A single learning instance can in principle provide strong evidence for a particular word meaning. For example, imagine that a parent points to a ball and says ``ball'' An observer with an understanding of pointing can infer that the speaker is referring to the ball, infer that the concurrently uttered word refers to it, and generalize to the broader concept of balls in general. In practice, however, very young children typically require at least a handful (and often far more) exposures to a word before they recognize it and retain it for future use, even when the context of naming is unambiguous \cite{woodward1994}.
+A single learning instance can in principle provide strong evidence for a particular word meaning. For example, imagine that a parent points to a ball and says ``ball''. An observer with an understanding of pointing can infer that the speaker is referring to the ball, infer that the concurrently uttered word refers to it, and generalize to the broader concept of balls in general. In practice, however, very young children typically require at least a handful (and often far more) exposures to a word before they recognize it and retain it for future use, even when the context of naming is unambiguous \cite{woodward1994}.
 
 In addition, many learning situations range from slightly to substantially more ambiguous. Imagine that the parent had uttered the phrase ``look at that nice, round ball!''---this phrase has a number of competing words that might be candidates for the object name (though perhaps worse candidates by virtue of sentential position, stress, or phonological structure). Or the parent might not have pointed but instead relied on the fact that the child was playing with the ball. Perhaps there might have been other toys present competing for the child's attention. In each of these cases, the child might be able to guess that the word ``ball'' referred to the ball, but with less certainty than in the simplest case (\citeNP{gillette1999} and \citeNP{yurovsky2013} give concrete instantiations of such differences in certainty in naturalistic play session videos). 
 
@@ -264,11 +266,54 @@ In the full generative model the contexts are exchangeable: the order of context
 
 \section{Simulations}
 
-
 \subsection{Corpus simulations}
 
-We provide proof of concept that.
-We make use of the Rollins Corpus from CHILDES \cite{macwhinney2000}, 
+We provide proof of concept that our model can learn a plausible lexicon from naturalistic data. We used videos from the Rollins Corpus from the Child Language Data Exchange System, CHILDES \cite{macwhinney2000}, the same videos as in \cite{yu2007} and \cite{frank2009}, in which two preverbal infants and their mothers play with a set of toys. We coded these videos with a list of all midsize objects judged to be visible to the infant. Each of the mother's utterances forms a situation, with the set of words that she uttered and the set of visible objects being the input to the learning model.
+
+We ran a suite of simulations on this corpus, varying the values of the model parameters ($\alpha_R$, $\alpha_{NR}$, and $I_0$). For each combination of parameter values, we ran five separate chains of the Gibbs' sampler, each with 1000 samples. The sampler converged after a few hundred samples, so we discarded the first 300 samples as burn-in and averaged the lexica of the remaining samples to obtain that simulation's lexicon.
+
+We then evaluated the resulting lexica against the gold standard mapping by including or excluding each entry in the lexicon according to whether is was greater than or less then a threshold and tuning this threshold according to which yielded the highest F-score. The best lexicon had precision 0.50, recall 0.41, and F-score 0.45 (parameters $\alpha_R=1.0$, $\alpha_{NR}=1.0$, and $I_0=0.01$). Table \ref{table:lexicon} shows the links that this lexicon includes at the optimal threshold.
+
+\begin{table}
+\singlespacing
+\small
+\begin{tabular}{l l}
+\hline
+Word & Object \\ \hline
+and & boy\\
+and & girl\\
+and & man\\
+and & woman\\
+baa & lamb\\
+baby & baby\\
+baby & kitty\\
+bear & bear\\
+bigbird & bird\\
+book & book\\
+books & face\\
+bottle & bear\\
+bottles & face\\
+bumpba & lamb\\
+bunnies & bunny\\
+bunnyrabbit & bunny\\
+david & mirror\\
+hat & hat\\
+kittycat & baby\\
+kittycat & kitty\\
+lamb & lamb\\
+lambie & lamb\\
+look & eyes\\
+mirror & mirror\\
+moocow & cow\\
+pig & pig\\
+sheep & sheep\\
+yeah & hand
+\end{tabular}
+\caption{The best lexicon found by the model.}
+\label{table:lexicon}
+\end{table}
+
+The model has considerable parameter dependence on $\alpha_R$ and $\alpha_{NR}$. While the scores change little with $I_0$, they drop off sharply for smaller values of $\alpha_R$ and slightly for larger values of $\alpha_R$. Varying $\alpha_{NR}$ causes somewhat of a precision-recall trade-off: while larger values $\alpha_{NR}$ decrease both precision and recall, smaller values of $\alpha_{NR}$ increase precision but decrease recall.
 
 \subsection{Cross-situational word learning with adults}
 
@@ -287,7 +332,8 @@ We make use of the Rollins Corpus from CHILDES \cite{macwhinney2000},
 
 A key test of the model is its ability to learn word-object mappings across many individually ambiguous contexts. To evaluate the model's performance, we tested the model in a design identical to \citeA{yu2007b}. We presented the model with 18 novel words across many trials that were individually referentially ambiguous. A trial consisted of  {\it n} words presented with {\it n}  objects. As in \citeA{yu2007b}, we tested three values for  {\it n}: 2, 3, 4. For example, in an {\it n} = 2 condition, the model was presented with two words and two possible referents. Across conditions, the number of co-occurences of each word-object pairing was held constant. We evaluated the posterior lexicon using a Luce choice rule \cite{luce1959} for each word with four referential alternatives (one correct and three foils). 
 
-Our model was able to successfully recover the correct mappings for most words. Because the lexicon is a continuous representation unlike the original model \cite{frank2009}, the model produced a graded pattern in performance in the test trials. As in the behavioral data \cite{yu2007b}, accuracy declined as the number of referential alternatives in the training trials increased: the model was most accurate in the {\it n} = 2 condition, and least accurate in the  {\it n}  = 4 condition (Fig.~\ref{fig:yu2007sim}). 
+Our model was able to successfully recover the correct mappings for most words. Because the lexicon is a continuous representation unlike the original model \cite{frank2009}, the model produced a graded pattern in performance in the test trials. As in the behavioral data \cite{yu2007b}, accuracy declined as the number of referential alternatives in the training trials increased: the model was most accurate in the {\it n} = 2 condition, and least accurate in the  {\it n}  = 4 condition (Fig.~\ref{fig:yu2007sim}).
+
 \subsection{Experiments with children}
 
 \subsubsection{Disambiguation}
